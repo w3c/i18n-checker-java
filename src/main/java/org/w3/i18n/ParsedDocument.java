@@ -69,6 +69,10 @@ public class ParsedDocument {
         return doctypeDeclaration;
     }
 
+    public String getDoctypeDescription() {
+        return doctypeClassification.getDescription();
+    }
+
     private static DoctypeClassification classifyDoctype(
             String doctypeDeclaration) {
         DoctypeClassification doctypeClassification;

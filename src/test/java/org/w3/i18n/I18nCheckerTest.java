@@ -59,8 +59,16 @@ public class I18nCheckerTest {
         try {
             uri = new URI("http://www.w3.org/");
         } catch (URISyntaxException ex) {
+            throw new RuntimeException(ex);
         }
         Iterable<Assertion> assertions = new I18nChecker().assertUri(
                 uri, asyncHttpClient, null);
+        for (Assertion assertion : assertions) {
+            System.out.println(assertion.getLevel()
+                    + ": \"" + assertion.getId()
+                    + "\"; \"" + assertion.getHtmlTitle()
+                    + "\"; \"" + assertion.getHtmlDescription()
+                    + "\"; " + assertion.getContexts());
+        }
     }
 }
