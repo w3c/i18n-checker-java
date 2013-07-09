@@ -31,6 +31,7 @@ public class ParsedDocument {
     private final String doctypeDeclaration;
     private final DoctypeClassification doctypeClassification;
     private final String byteOrderMark;
+    private final String XmlDeclaration;
 
     public ParsedDocument(Response response) {
         this.response = response;
@@ -46,14 +47,21 @@ public class ParsedDocument {
         this.document = Jsoup.parse(responseBody);
 
         // Find the doctype declaration
-        Matcher m = Pattern.compile("<!DOCTYPE[^>]*>")
+        Matcher dtdMatcher = Pattern.compile("<!DOCTYPE[^>]*>")
                 .matcher(responseBody.substring(0, 512));
-        this.doctypeDeclaration = m.find() ? m.group() : null;
+        this.doctypeDeclaration = dtdMatcher.find() ? dtdMatcher.group() : null;
 
         // Classify the doctype
         this.doctypeClassification = classifyDoctype(doctypeDeclaration);
 
         this.byteOrderMark = findByteOrderMark(responseBody);
+
+        // Find the XML declaration
+        Matcher xmlDeclarationMatcher = Pattern.compile("<\\?xml[^>]+>")
+                .matcher(responseBody.substring(0, 512));
+        this.XmlDeclaration = xmlDeclarationMatcher.find()
+                ? xmlDeclarationMatcher.group() : null;
+
     }
 
     public Response getResponse() {
@@ -80,6 +88,10 @@ public class ParsedDocument {
         return byteOrderMark;
     }
 
+    public String getXmlDeclaration() {
+        return XmlDeclaration;
+    }
+
     private static String findByteOrderMark(String str) {
         if (str == null) {
             throw new NullPointerException();
@@ -90,9 +102,6 @@ public class ParsedDocument {
          * handling the character encoding of the string. ~~~~~ Joe S.
          */
         byte[] firstCodePoints = str.substring(0, 3).getBytes();
-        for (byte b : firstCodePoints) {
-            System.out.println("b = " + b);
-        }
         if (firstCodePoints[0] == 239
                 && firstCodePoints[1] == 187
                 && firstCodePoints[2] == 191) {

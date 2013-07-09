@@ -38,4 +38,20 @@ class Utils {
         }
         return charset;
     }
+
+    public static String getCharsetFromXmlDeclaration(String xmlDeclaration) {
+        if (xmlDeclaration == null) {
+            throw new NullPointerException();
+        }
+        String charset;
+        Matcher charsetMatcher =
+                // TODO Single quotes here?
+                Pattern.compile("encoding=\"[^\"]*").matcher(xmlDeclaration);
+        if (charsetMatcher.find()) {
+            charset = charsetMatcher.group().substring(10).trim();
+        } else {
+            charset = null;
+        }
+        return charset;
+    }
 }
