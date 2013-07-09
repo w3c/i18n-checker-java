@@ -46,7 +46,8 @@ public class I18nChecker implements Assertor {
 
         addAssertionDtdMimetype();
         addAssertionCharsetHttp();
-        
+        addAssertionCharsetBom();
+
         return assertions;
     }
 
@@ -90,6 +91,15 @@ public class I18nChecker implements Assertor {
                 description,
                 Arrays.asList(context)));
 
+    }
+
+    private void addAssertionCharsetBom() {
+        assertions.add(new Assertion(
+                "charset_bom",
+                Assertion.Level.INFO,
+                "Byte order mark (BOM)",
+                null,
+                Arrays.asList(parsedDocument.getByteOrderMark())));
     }
 
     private static ParsedDocument get(

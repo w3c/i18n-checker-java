@@ -30,6 +30,7 @@ public class ParsedDocument {
     private final Document document;
     private final String doctypeDeclaration;
     private final DoctypeClassification doctypeClassification;
+    private final String byteOrderMark;
 
     public ParsedDocument(Response response) {
         this.response = response;
@@ -51,6 +52,8 @@ public class ParsedDocument {
 
         // Classify the doctype
         this.doctypeClassification = classifyDoctype(doctypeDeclaration);
+
+        this.byteOrderMark = findByteOrderMark(responseBody);
     }
 
     public Response getResponse() {
@@ -71,6 +74,39 @@ public class ParsedDocument {
 
     public String getDoctypeDescription() {
         return doctypeClassification.getDescription();
+    }
+
+    public String getByteOrderMark() {
+        return byteOrderMark;
+    }
+
+    private static String findByteOrderMark(String str) {
+        if (str == null) {
+            throw new NullPointerException();
+        }
+        String byteOrderMark;
+        /*
+         * TODO: I may have introduced an error here due to not explicitly
+         * handling the character encoding of the string. ~~~~~ Joe S.
+         */
+        byte[] firstCodePoints = str.substring(0, 3).getBytes();
+        for (byte b : firstCodePoints) {
+            System.out.println("b = " + b);
+        }
+        if (firstCodePoints[0] == 239
+                && firstCodePoints[1] == 187
+                && firstCodePoints[2] == 191) {
+            byteOrderMark = "UTF-8";
+        } else if (firstCodePoints[0] == 254
+                && firstCodePoints[1] == 255) {
+            byteOrderMark = "UTF-16 (BE)";
+        } else if (firstCodePoints[0] == 255
+                && firstCodePoints[1] == 254) {
+            byteOrderMark = "UTF-16 (LE)";
+        } else {
+            byteOrderMark = null;
+        }
+        return byteOrderMark;
     }
 
     private static DoctypeClassification classifyDoctype(
