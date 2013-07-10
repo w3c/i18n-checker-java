@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.w3.assertor.model.Assertion;
@@ -51,6 +53,7 @@ public class I18nChecker implements Assertor {
         addAssertionCharsetBom();
         addAssertionCharsetXmlDeclaration();
         addAssertionCharsetMeta();
+        addAssertionLangAttr();
         addAssertionLangHttp();
 
         return assertions;
@@ -149,6 +152,22 @@ public class I18nChecker implements Assertor {
              * Is it correct to decide which one to use and generate a warning?
              */
         }
+    }
+
+    private void addAssertionLangAttr() {
+        // TODO ignores either xml:lang or lang, whichever is first
+        // TODO Find a way to get the parser to do this:
+        Matcher htmlTagM = Pattern.compile("<html [^>]*>")
+                .matcher(parsedDocument.getResponseBody());
+        String htmlTag = htmlTagM.find() ? htmlTagM.group() : null;
+
+        Matcher langM = Pattern.compile("lang=\"[^\"]*\"").matcher(htmlTag);
+        String langAttr = langM.find() ? 
+                langM.group().substring(6, langM.group().length() - 1) : null;
+
+        assertions.add(new Assertion(
+                "lang_attr_lang", Assertion.Level.INFO, null, null,
+                Arrays.asList(langAttr, htmlTag)));
     }
 
     private void addAssertionLangHttp() {
