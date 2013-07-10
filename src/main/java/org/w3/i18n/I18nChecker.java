@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.w3.assertor.model.Assertion;
 import org.w3.assertor.Assertor;
 
@@ -48,6 +50,7 @@ public class I18nChecker implements Assertor {
         addAssertionCharsetHttp();
         addAssertionCharsetBom();
         addAssertionCharsetXmlDeclaration();
+        addAssertionCharsetMeta();
 
         return assertions;
     }
@@ -113,6 +116,38 @@ public class I18nChecker implements Assertor {
                 null,
                 charset,
                 Arrays.asList(xmlDeclaration)));
+    }
+
+    private void addAssertionCharsetMeta() {
+        Elements metaElements =
+                parsedDocument.getDocument().getElementsByTag("meta");
+        List<Element> matchingMetaElements = new ArrayList<>();
+        for (Element e : metaElements) {
+            if (e.outerHtml().matches(".*charset.*")) {
+                matchingMetaElements.add(e);
+            }
+        }
+        if (matchingMetaElements.size() == 1) {
+            String context = matchingMetaElements.get(0).outerHtml();
+            String description = Utils.getCharsetFromMetaTag(context);
+            assertions.add(new Assertion(
+                    "charset_meta",
+                    Assertion.Level.INFO,
+                    null,
+                    description,
+                    Arrays.asList(context)));
+        } else if (matchingMetaElements.isEmpty()) {
+            assertions.add(new Assertion(
+                    "charset_meta",
+                    Assertion.Level.INFO,
+                    null,
+                    null,
+                    null));
+        } else {
+            /* There is more than one meta tag with a charset declaration. TODO
+             * Is it correct to decide which one to use and generate a warning?
+             */
+        }
     }
 
     private static ParsedDocument get(

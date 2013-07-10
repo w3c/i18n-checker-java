@@ -54,4 +54,21 @@ class Utils {
         }
         return charset;
     }
+
+    public static String getCharsetFromMetaTag(String metaTag) {
+        if (metaTag == null) {
+            throw new NullPointerException();
+        }
+        String charset;
+        Matcher charsetMatcher =
+                // TODO Single quotes here?
+                Pattern.compile("charset=\"?[^\";]*").matcher(metaTag);
+        if (charsetMatcher.find()) {
+            String group = charsetMatcher.group().substring(8).trim();
+            charset = group.charAt(0) == '"' ? group.substring(1) : group;
+        } else {
+            charset = null;
+        }
+        return charset;
+    }
 }
