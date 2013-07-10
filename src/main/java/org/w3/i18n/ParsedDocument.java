@@ -32,6 +32,7 @@ public class ParsedDocument {
     private final DoctypeClassification doctypeClassification;
     private final String byteOrderMark;
     private final String XmlDeclaration;
+    private final String htmlOpeningTag;
 
     public ParsedDocument(Response response) {
         this.response = response;
@@ -62,6 +63,11 @@ public class ParsedDocument {
         this.XmlDeclaration = xmlDeclarationMatcher.find()
                 ? xmlDeclarationMatcher.group() : null;
 
+        // TODO Find a way to get the parser to do this:
+        Matcher htmlOpeningTagM = Pattern.compile("<html [^>]*>")
+                .matcher(responseBody);
+        this.htmlOpeningTag =
+                htmlOpeningTagM.find() ? htmlOpeningTagM.group() : null;
     }
 
     public Response getResponse() {
@@ -90,6 +96,10 @@ public class ParsedDocument {
 
     public String getXmlDeclaration() {
         return XmlDeclaration;
+    }
+
+    public String getHtmlOpeningTag() {
+        return htmlOpeningTag;
     }
 
     private static String findByteOrderMark(String str) {

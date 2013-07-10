@@ -56,6 +56,7 @@ public class I18nChecker implements Assertor {
         addAssertionLangAttr();
         addAssertionLangHttp();
         addAssertionLangMeta();
+        addAssertionDirHtml();
 
         return assertions;
     }
@@ -157,11 +158,7 @@ public class I18nChecker implements Assertor {
 
     private void addAssertionLangAttr() {
         // TODO ignores either xml:lang or lang, whichever is first
-        // TODO Find a way to get the parser to do this:
-        Matcher htmlTagM = Pattern.compile("<html [^>]*>")
-                .matcher(parsedDocument.getResponseBody());
-        String htmlTag = htmlTagM.find() ? htmlTagM.group() : null;
-
+        String htmlTag = parsedDocument.getHtmlOpeningTag();
         Matcher langM = Pattern.compile("lang=\"[^\"]*\"").matcher(htmlTag);
         String langAttr = langM.find()
                 ? langM.group().substring(6, langM.group().length() - 1) : null;
@@ -202,6 +199,17 @@ public class I18nChecker implements Assertor {
             assertions.add(new Assertion(
                     "lang_meta", Assertion.Level.INFO, null, null, null));
         }
+    }
+
+    private void addAssertionDirHtml() {
+        String htmlOpeningTag = parsedDocument.getHtmlOpeningTag();
+        Matcher dirAttrM =
+                Pattern.compile("dir\"[^\"]*\"").matcher(htmlOpeningTag);
+        String dirAttr = dirAttrM.find() ? dirAttrM.group() : null;
+        assertions.add(new Assertion(
+                "dir_default", Assertion.Level.INFO, null, null,
+                dirAttr == null
+                ? null : Arrays.asList(dirAttr, htmlOpeningTag)));
     }
 
     private static ParsedDocument get(
