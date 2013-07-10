@@ -51,6 +51,7 @@ public class I18nChecker implements Assertor {
         addAssertionCharsetBom();
         addAssertionCharsetXmlDeclaration();
         addAssertionCharsetMeta();
+        addAssertionLangHttp();
 
         return assertions;
     }
@@ -148,6 +149,18 @@ public class I18nChecker implements Assertor {
              * Is it correct to decide which one to use and generate a warning?
              */
         }
+    }
+
+    private void addAssertionLangHttp() {
+        String contentLanguage =
+                parsedDocument.getResponse().getHeader("Content-Language");
+        String context = "Content-Language: " + contentLanguage;
+        assertions.add(new Assertion(
+                "lang_http",
+                Assertion.Level.INFO,
+                null,
+                contentLanguage,
+                Arrays.asList(context)));
     }
 
     private static ParsedDocument get(
