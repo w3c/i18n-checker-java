@@ -25,54 +25,6 @@ class Utils {
 
     private Utils() {
     }
-//
-//    public static String getCharsetFromContentType(String contentType) {
-//        if (contentType == null) {
-//            throw new NullPointerException();
-//        }
-//        String charset;
-//        Matcher charsetMatcher =
-//                Pattern.compile("charset=[^;]*").matcher(contentType);
-//        if (charsetMatcher.find()) {
-//            charset = charsetMatcher.group().substring(8).trim();
-//        } else {
-//            charset = null;
-//        }
-//        return charset;
-//    }
-//
-//    public static String getCharsetFromXmlDeclaration(String xmlDeclaration) {
-//        if (xmlDeclaration == null) {
-//            throw new NullPointerException();
-//        }
-//        String charset;
-//        Matcher charsetMatcher =
-//                // TODO Single quotes here?
-//                Pattern.compile("encoding=\"[^\"]*").matcher(xmlDeclaration);
-//        if (charsetMatcher.find()) {
-//            charset = charsetMatcher.group().substring(10).trim();
-//        } else {
-//            charset = null;
-//        }
-//        return charset;
-//    }
-//
-//    public static String getCharsetFromMetaTag(String metaTag) {
-//        if (metaTag == null) {
-//            throw new NullPointerException();
-//        }
-//        String charset;
-//        Matcher charsetMatcher =
-//                // TODO Single quotes here?
-//                Pattern.compile("charset=\"?[^\";]*").matcher(metaTag);
-//        if (charsetMatcher.find()) {
-//            String group = charsetMatcher.group().substring(8).trim();
-//            charset = group.charAt(0) == '"' ? group.substring(1) : group;
-//        } else {
-//            charset = null;
-//        }
-//        return charset;
-//    }
 
     /**
      * Returns a list of subsequences of a {@code CharSequence} that match the
