@@ -55,6 +55,7 @@ public class I18nChecker implements Assertor {
         addAssertionCharsetMeta();
         addAssertionLangAttr();
         addAssertionLangHttp();
+        addAssertionLangMeta();
 
         return assertions;
     }
@@ -162,8 +163,8 @@ public class I18nChecker implements Assertor {
         String htmlTag = htmlTagM.find() ? htmlTagM.group() : null;
 
         Matcher langM = Pattern.compile("lang=\"[^\"]*\"").matcher(htmlTag);
-        String langAttr = langM.find() ? 
-                langM.group().substring(6, langM.group().length() - 1) : null;
+        String langAttr = langM.find()
+                ? langM.group().substring(6, langM.group().length() - 1) : null;
 
         assertions.add(new Assertion(
                 "lang_attr_lang", Assertion.Level.INFO, null, null,
@@ -180,6 +181,27 @@ public class I18nChecker implements Assertor {
                 null,
                 contentLanguage,
                 Arrays.asList(context)));
+    }
+
+    private void addAssertionLangMeta() {
+        if (!parsedDocument.getDocument()
+                .getElementsByAttributeValue("http-equiv", "Content-Language")
+                .isEmpty()) {
+            String metaTag = parsedDocument.getDocument()
+                    .getElementsByAttributeValue(
+                    "http-equiv", "Content-Language").first().outerHtml();
+            Matcher contentM =
+                    Pattern.compile("content=\"[^\"]*\"").matcher(metaTag);
+            String content = contentM.find()
+                    ? contentM.group()
+                    .substring(9, contentM.group().length() - 1) : null;
+            assertions.add(new Assertion(
+                    "lang_meta", Assertion.Level.INFO, null, null,
+                    Arrays.asList(content, metaTag)));
+        } else {
+            assertions.add(new Assertion(
+                    "lang_meta", Assertion.Level.INFO, null, null, null));
+        }
     }
 
     private static ParsedDocument get(
