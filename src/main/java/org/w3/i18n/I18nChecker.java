@@ -90,16 +90,13 @@ public class I18nChecker implements Assertor {
     public void addAssertionCharsetHttp() {
         String contentType = parsedDocument.getResponse().getContentType();
         String context = "Content-Type: " + contentType;
-        String value = Utils.getCharsetFromContentType(contentType);
-        String description =
-                value == null ? context == null
-                ? "val_none_found" : "charset_none_found" : null;
+        List<String> charsetMatches = Utils.getMatchingGroups(
+                Pattern.compile("charset=[^;]*"), contentType);
+        String value = charsetMatches.isEmpty()
+                ? null : charsetMatches.get(0).substring(8);
         assertions.add(new Assertion(
-                "charset_http",
-                Assertion.Level.INFO,
-                null,
-                description,
-                Arrays.asList(context)));
+                "charset_http", Assertion.Level.INFO, null, null,
+                Arrays.asList(value, context)));
 
     }
 
@@ -113,15 +110,19 @@ public class I18nChecker implements Assertor {
     }
 
     private void addAssertionCharsetXmlDeclaration() {
+        List<String> context = new ArrayList<>();
         String xmlDeclaration = parsedDocument.getXmlDeclaration();
-        String charset = xmlDeclaration == null
-                ? null : Utils.getCharsetFromXmlDeclaration(xmlDeclaration);
+        if (xmlDeclaration != null) {
+
+            List<String> charsetMatches = Utils.getMatchingGroups(
+                    Pattern.compile("encoding=\"[^\"]*"), xmlDeclaration);
+            context.add(charsetMatches.isEmpty()
+                    ? null : charsetMatches.get(0).substring(10));
+        }
+        context.add(xmlDeclaration);
         assertions.add(new Assertion(
-                "charset_xml",
-                Assertion.Level.INFO,
-                null,
-                charset,
-                Arrays.asList(xmlDeclaration)));
+                "charset_xml", Assertion.Level.INFO, null, null,
+                context));
     }
 
     private void addAssertionCharsetMeta() {
@@ -134,14 +135,19 @@ public class I18nChecker implements Assertor {
             }
         }
         if (matchingMetaElements.size() == 1) {
-            String context = matchingMetaElements.get(0).outerHtml();
-            String description = Utils.getCharsetFromMetaTag(context);
+            String metaTag = matchingMetaElements.get(0).outerHtml();
+            List<String> charsetMatches = Utils.getMatchingGroups(
+                    Pattern.compile("charset=\"?[^\";]*"), metaTag);
+            List<String> context = new ArrayList<>();
+            if (!charsetMatches.isEmpty()) {
+                String group = charsetMatches.get(0).substring(8).trim();
+                context.add(
+                        group.charAt(0) == '"' ? group.substring(1) : group);
+            }
+            context.add(metaTag);
             assertions.add(new Assertion(
                     "charset_meta",
-                    Assertion.Level.INFO,
-                    null,
-                    description,
-                    Arrays.asList(context)));
+                    Assertion.Level.INFO, null, null, context));
         } else if (matchingMetaElements.isEmpty()) {
             assertions.add(new Assertion(
                     "charset_meta",
