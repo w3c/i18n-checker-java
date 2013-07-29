@@ -16,9 +16,14 @@ import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Response;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,6 +62,7 @@ public class I18nChecker implements Assertor {
         addAssertionLangHttp();
         addAssertionLangMeta();
         addAssertionDirHtml();
+        addAssertionClassID();
 
         return assertions;
     }
@@ -216,6 +222,38 @@ public class I18nChecker implements Assertor {
                 "dir_default", Assertion.Level.INFO, null, null,
                 dirAttr == null
                 ? null : Arrays.asList(dirAttr, htmlOpeningTag)));
+    }
+
+    private void addAssertionClassID() {
+        // Aggregate all class names and IDs.
+        Set<String> idsAndClassNames = new TreeSet<>();
+        for (Element element : this.parsedDocument.getDocument()
+                .getElementsByAttribute("class")) {
+            idsAndClassNames.addAll(element.classNames());
+        }
+        for (Element element : this.parsedDocument.getDocument()
+                .getElementsByAttribute("id")) {
+            idsAndClassNames.add(element.id());
+        }
+
+        // Find problematic class names and IDs
+        List<String> problems = new ArrayList<>();
+        CharsetEncoder ce = Charset.forName("US-ASCII").newEncoder();
+        for (String str : idsAndClassNames) {
+            if ( // Non-ASCII ...
+                    !ce.canEncode(str)
+                    // or Non-NFC (Unicode normalisation)
+                    || !Normalizer.isNormalized(str, Normalizer.Form.NFC)) {
+                problems.add(str);
+            }
+        }
+
+        // Finally ...
+        if (!problems.isEmpty()) {
+            assertions.add(
+                    new Assertion("class_id", Assertion.Level.INFO,
+                    null, null, problems));
+        }
     }
 
     private static ParsedDocument get(
