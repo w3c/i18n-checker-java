@@ -13,6 +13,7 @@
 package org.w3.i18n;
 
 import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.Request;
 import com.ning.http.client.Response;
 import java.io.IOException;
 import java.net.URI;
@@ -21,7 +22,9 @@ import java.nio.charset.CharsetEncoder;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
@@ -63,12 +66,14 @@ public class I18nChecker implements Assertor {
         addAssertionLangMeta();
         addAssertionDirHtml();
         addAssertionClassID();
+        addAssertionRequestHeaders();
+        addAssertionCharsetReports();
 
         return assertions;
     }
 
     private void addAssertionDtdMimetype() {
-        if (parsedDocument.isHtml5()) {
+        if (parsedDocument.isServedAsXml()) {
             assertions.add(new Assertion(
                     "message_xhtml5_partial_support",
                     Assertion.Level.MESSAGE,
@@ -93,16 +98,12 @@ public class I18nChecker implements Assertor {
                 null));
     }
 
-    public void addAssertionCharsetHttp() {
-        String contentType = parsedDocument.getResponse().getContentType();
-        String context = "Content-Type: " + contentType;
-        List<String> charsetMatches = Utils.getMatchingGroups(
-                Pattern.compile("charset=[^;]*"), contentType);
-        String value = charsetMatches.isEmpty()
-                ? null : charsetMatches.get(0).substring(8);
+    private void addAssertionCharsetHttp() {
+        String context = "Content-Type: "
+                + parsedDocument.getResponse().getContentType();
         assertions.add(new Assertion(
                 "charset_http", Assertion.Level.INFO, null, null,
-                Arrays.asList(value, context)));
+                Arrays.asList(parsedDocument.getCharsetHttp(), context)));
 
     }
 
@@ -116,68 +117,34 @@ public class I18nChecker implements Assertor {
     }
 
     private void addAssertionCharsetXmlDeclaration() {
-        List<String> context = new ArrayList<>();
-        String xmlDeclaration = parsedDocument.getXmlDeclaration();
-        if (xmlDeclaration != null) {
-
-            List<String> charsetMatches = Utils.getMatchingGroups(
-                    Pattern.compile("encoding=\"[^\"]*"), xmlDeclaration);
-            context.add(charsetMatches.isEmpty()
-                    ? null : charsetMatches.get(0).substring(10));
-        }
-        context.add(xmlDeclaration);
         assertions.add(new Assertion(
                 "charset_xml", Assertion.Level.INFO, null, null,
-                context));
+                Arrays.asList(parsedDocument.getCharsetXmlDeclaration(),
+                parsedDocument.getXmlDeclaration())));
     }
 
     private void addAssertionCharsetMeta() {
-        Elements metaElements =
-                parsedDocument.getDocument().getElementsByTag("meta");
-        List<Element> matchingMetaElements = new ArrayList<>();
-        for (Element e : metaElements) {
-            if (e.outerHtml().matches(".*charset.*")) {
-                matchingMetaElements.add(e);
-            }
-        }
-        if (matchingMetaElements.size() == 1) {
-            String metaTag = matchingMetaElements.get(0).outerHtml();
-            List<String> charsetMatches = Utils.getMatchingGroups(
-                    Pattern.compile("charset=\"?[^\";]*"), metaTag);
-            List<String> context = new ArrayList<>();
-            if (!charsetMatches.isEmpty()) {
-                String group = charsetMatches.get(0).substring(8).trim();
-                context.add(
-                        group.charAt(0) == '"' ? group.substring(1) : group);
-            }
-            context.add(metaTag);
-            assertions.add(new Assertion(
-                    "charset_meta",
-                    Assertion.Level.INFO, null, null, context));
-        } else if (matchingMetaElements.isEmpty()) {
-            assertions.add(new Assertion(
-                    "charset_meta",
-                    Assertion.Level.INFO,
-                    null,
-                    null,
-                    null));
-        } else {
-            /* There is more than one meta tag with a charset declaration. TODO
-             * Is it correct to decide which one to use and generate a warning?
-             */
-        }
+        assertions.add(new Assertion(
+                "charset_meta",
+                Assertion.Level.INFO,
+                null,
+                null,
+                Arrays.asList(parsedDocument.getCharsetMeta(),
+                parsedDocument.getCharsetMetaContext())));
     }
 
     private void addAssertionLangAttr() {
         // TODO ignores either xml:lang or lang, whichever is first
         String htmlTag = parsedDocument.getHtmlOpeningTag();
-        Matcher langM = Pattern.compile("lang=\"[^\"]*\"").matcher(htmlTag);
-        String langAttr = langM.find()
-                ? langM.group().substring(6, langM.group().length() - 1) : null;
-
-        assertions.add(new Assertion(
-                "lang_attr_lang", Assertion.Level.INFO, null, null,
-                Arrays.asList(langAttr, htmlTag)));
+        if (htmlTag != null) {
+            Matcher langM = Pattern.compile("lang=\"[^\"]*\"").matcher(htmlTag);
+            String langAttr = langM.find()
+                    ? langM.group().substring(6, langM.group().length() - 1)
+                    : null;
+            assertions.add(new Assertion(
+                    "lang_attr_lang", Assertion.Level.INFO, null, null,
+                    Arrays.asList(langAttr, htmlTag)));
+        }
     }
 
     private void addAssertionLangHttp() {
@@ -215,13 +182,15 @@ public class I18nChecker implements Assertor {
 
     private void addAssertionDirHtml() {
         String htmlOpeningTag = parsedDocument.getHtmlOpeningTag();
-        Matcher dirAttrM =
-                Pattern.compile("dir\"[^\"]*\"").matcher(htmlOpeningTag);
-        String dirAttr = dirAttrM.find() ? dirAttrM.group() : null;
-        assertions.add(new Assertion(
-                "dir_default", Assertion.Level.INFO, null, null,
-                dirAttr == null
-                ? null : Arrays.asList(dirAttr, htmlOpeningTag)));
+        if (htmlOpeningTag != null) {
+            Matcher dirAttrM =
+                    Pattern.compile("dir\"[^\"]*\"").matcher(htmlOpeningTag);
+            String dirAttr = dirAttrM.find() ? dirAttrM.group() : null;
+            assertions.add(new Assertion(
+                    "dir_default", Assertion.Level.INFO, null, null,
+                    dirAttr == null
+                    ? null : Arrays.asList(dirAttr, htmlOpeningTag)));
+        }
     }
 
     private void addAssertionClassID() {
@@ -256,16 +225,121 @@ public class I18nChecker implements Assertor {
         }
     }
 
+    private void addAssertionRequestHeaders() {
+        // Find relevant headers.
+        /*
+         * TODO: Currently there are never any request headers because
+         * async-http-client doesn't use any by default.
+         */
+        Map<String, List<String>> headers =
+                parsedDocument.getRequest().getHeaders();
+        String[] desiredHeaders = {
+            "Accept-Language",
+            "Accept-Charset"
+        };
+        List<String> result = new ArrayList<>();
+        for (String header : desiredHeaders) {
+            if (headers.containsKey(header)) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(header).append(": ");
+                for (String contents : headers.get(header)) {
+                    sb.append(contents);
+                }
+                result.add(sb.toString());
+            }
+        }
+        assertions.add(new Assertion(
+                "request_headers", Assertion.Level.INFO, null, null, result));
+    }
+
+    private void addAssertionCharsetReports() {
+        // Get all the charset declarations.
+        List<String> charsetDeclarations = new ArrayList<>();
+        if (parsedDocument.getCharsetHttp() != null) {
+            charsetDeclarations.add(
+                    parsedDocument.getCharsetHttp().toLowerCase());
+        }
+        if (parsedDocument.getByteOrderMark() != null) {
+            charsetDeclarations.add(parsedDocument.getByteOrderMark()
+                    /* This removes " (BE)" or " (LE)" from the UTF-16 and
+                     * UTF-32 byte order marks. */
+                    .toLowerCase().split(" ")[0]);
+        }
+        if (parsedDocument.getCharsetXmlDeclaration() != null) {
+            charsetDeclarations.add(
+                    parsedDocument.getCharsetXmlDeclaration().toLowerCase());
+        }
+        if (parsedDocument.getCharsetMeta() != null) {
+            charsetDeclarations.add(
+                    parsedDocument.getCharsetMeta().toLowerCase());
+        }
+
+        // Report: No charset declarations
+        if (charsetDeclarations.isEmpty()) {
+            if (!parsedDocument.isServedAsXml()) {
+                Assertion.Level level = parsedDocument.isHtml5()
+                        ? Assertion.Level.ERROR : Assertion.Level.WARNING;
+                assertions.add(new Assertion(
+                        "rep_charset_none", level, null, null, null));
+            }
+        } else {
+            // Report: Non UTF-8 declarations
+            List<String> nonUtf8declarations = new ArrayList<>();
+            for (String declaration : charsetDeclarations) {
+                if (!declaration.matches("utf-8")) {
+                    nonUtf8declarations.add(declaration);
+                }
+            }
+            if (!nonUtf8declarations.isEmpty()) {
+                assertions.add(new Assertion(
+                        "rep_charset_no_utf8", Assertion.Level.ERROR,
+                        null, null, nonUtf8declarations));
+            }
+
+            // Report: More than one distinct declaration
+            Set distinctDeclarations = new HashSet(charsetDeclarations);
+            if (distinctDeclarations.size() > 1) {
+                assertions.add(new Assertion(
+                        "rep_charset_conflict", Assertion.Level.ERROR,
+                        null, null, new ArrayList(distinctDeclarations)));
+            }
+
+            // Report: XML tag charset declaration used
+            // TODO these assertions have small differences based on the doctype
+            if (parsedDocument.getCharsetXmlDeclaration() != null) {
+                if (parsedDocument.isHtml()) {
+                    assertions.add(new Assertion(
+                            "rep_charset_xml_decl", Assertion.Level.ERROR,
+                            null, null, Arrays.asList(
+                            parsedDocument.getCharsetXmlDeclaration())));
+                } else if (!parsedDocument.isServedAsXml()) {
+                    if (parsedDocument.isHtml5()) {
+                        assertions.add(new Assertion(
+                                "rep_charset_xml_decl", Assertion.Level.ERROR,
+                                null, null, Arrays.asList(
+                                parsedDocument.getCharsetXmlDeclaration())));
+                    } else if (parsedDocument.isXhtml10()) {
+                        assertions.add(new Assertion(
+                                "rep_charset_xml_decl", Assertion.Level.ERROR,
+                                null, null, Arrays.asList(
+                                parsedDocument.getCharsetXmlDeclaration())));
+                    }
+                }
+            }
+        }
+    }
+
     private static ParsedDocument get(
             URI uri, AsyncHttpClient asyncHttpClient) {
+        Request request = null;
         Response response = null;
         try {
-            response =
-                    asyncHttpClient.prepareGet(uri.toString()).execute().get();
+            request = asyncHttpClient.prepareGet(uri.toString()).build();
+            response = asyncHttpClient.executeRequest(request).get();
         } catch (IOException | InterruptedException | ExecutionException ex) {
             throw new RuntimeException(
                     "Exception thrown when retrieving document.", ex);
         }
-        return new ParsedDocument(response);
+        return new ParsedDocument(request, response);
     }
 }
