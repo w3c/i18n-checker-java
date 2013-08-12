@@ -46,6 +46,8 @@ class DocumentResource {
         } catch (InterruptedException | ExecutionException ex) {
             throw new RuntimeException(
                     "Exception thrown when retrieving document.", ex);
+        } finally {
+            asyncHttpClient.close();
         }
         this.headers = response.getHeaders();
     }
