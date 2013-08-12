@@ -67,4 +67,10 @@ public class Assertion {
         ERROR,
         MESSAGE;
     }
+
+    @Override
+    public String toString() {
+        return "[" + id + "; " + level + "; " + htmlTitle + "; "
+                + htmlDescription + "; " + contexts + "]";
+    }
 }
