@@ -84,7 +84,7 @@ class ParsedDocument {
         this.byteOrderMark = findByteOrderMark(documentBody);
 
         // Find the XML declaration; otherwise declare null.
-        Matcher xmlDeclarationMatcher = Pattern.compile("<\\?xml[^>]+>")
+        Matcher xmlDeclarationMatcher = Pattern.compile("<\\?xml [^>]*>")
                 .matcher(documentBody.substring(
                 0, Math.min(512, documentBody.length())));
         this.xmlDeclaration = xmlDeclarationMatcher.find()
@@ -142,7 +142,7 @@ class ParsedDocument {
         }
 
         // Find the Content-Type http header and the details within.
-        this.contentType = documentResource.getHeader("content-type");
+        this.contentType = documentResource.getHeader("Content-Type");
         if (contentType != null) {
             List<String> charsetHttpMatches = Utils.getMatchingGroups(
                     Pattern.compile("charset=[^;]*"), contentType);

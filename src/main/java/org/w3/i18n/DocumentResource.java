@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -49,14 +50,16 @@ class DocumentResource {
         } finally {
             asyncHttpClient.close();
         }
-        this.headers = response.getHeaders();
+        this.headers = getCaseInsensitiveHeaders(response.getHeaders());
+
+
     }
 
     public DocumentResource(
             URL url, InputStream body, Map<String, List<String>> headers) {
         this.url = url;
         this.body = body;
-        this.headers = headers;
+        this.headers = getCaseInsensitiveHeaders(headers);
     }
 
     public URL getUrl() {
@@ -81,5 +84,13 @@ class DocumentResource {
 
     public InputStream getBody() {
         return body;
+    }
+
+    private Map<String, List<String>> getCaseInsensitiveHeaders(
+            Map<String, List<String>> headers) {
+        Map<String, List<String>> caseInsensitiveHeaders =
+                new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveHeaders.putAll(headers);
+        return caseInsensitiveHeaders;
     }
 }
