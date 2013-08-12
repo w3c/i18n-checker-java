@@ -65,6 +65,18 @@ class DocumentResource {
         return headers;
     }
 
+    public String getHeader(String key) {
+        String header = null;
+        if (headers.containsKey(key)) {
+            StringBuilder sb = new StringBuilder();
+            for (String string : headers.get(key)) {
+                sb.append(sb);
+            }
+            header = sb.toString();
+        }
+        return header;
+    }
+
     public InputStream getBody() {
         return body;
     }
