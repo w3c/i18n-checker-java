@@ -69,10 +69,10 @@ class DocumentResource {
 
     public String getHeader(String key) {
         String header = null;
-        if (headers.containsKey(key)) {
+        if (headers.containsKey(key.toLowerCase())) {
             StringBuilder sb = new StringBuilder();
-            for (String string : headers.get(key)) {
-                sb.append(sb);
+            for (String string : headers.get(key.toLowerCase())) {
+                sb.append(string);
             }
             header = sb.toString();
         }

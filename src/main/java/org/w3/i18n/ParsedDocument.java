@@ -69,7 +69,7 @@ class ParsedDocument {
         }
 
         // TODO: Work around using a input stream instead.
-        this.documentBody = documentResource.getBody().toString();
+        this.documentBody = document.toString();
 
         // Find the doctype declaration; otherwise declare null.
         Matcher dtdMatcher = Pattern.compile("<!DOCTYPE[^>]*>").matcher(
@@ -141,22 +141,15 @@ class ParsedDocument {
             charsetMetaContext = null;
         }
 
-        // Find the Content-Type http header and the charset declaration within.
-        List<String> contentTypeList =
-                documentResource.getHeaders().get("Content-Type");
-        if (contentTypeList != null) {
-            StringBuilder contentTypeSb = new StringBuilder();
-            for (String string : contentTypeList) {
-                contentTypeSb.append(string);
-            }
-            this.contentType = contentTypeSb.toString();
+        // Find the Content-Type http header and the details within.
+        this.contentType = documentResource.getHeader("content-type");
+        if (contentType != null) {
             List<String> charsetHttpMatches = Utils.getMatchingGroups(
                     Pattern.compile("charset=[^;]*"), contentType);
             this.charsetHttp = charsetHttpMatches.isEmpty()
                     ? null : charsetHttpMatches.get(0).substring(8);
             this.servedAsXml = contentType.matches("application/xhtml+xml");
         } else {
-            this.contentType = null;
             this.charsetHttp = null;
             this.servedAsXml = false;
         }
