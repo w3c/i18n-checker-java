@@ -10,7 +10,7 @@
  * 
  * [1] http://www.w3.org/Consortium/Legal/2002/copyright-software-20021231
  */
-package org.w3.assertor.model;
+package org.w3.i18n;
 
 import java.util.List;
 
@@ -65,7 +65,6 @@ public class Assertion {
         INFO,
         WARNING,
         ERROR,
-        // Notice (/TODO): the 'MESSAGE' type may be removed in a future build.
         MESSAGE;
     }
 }
