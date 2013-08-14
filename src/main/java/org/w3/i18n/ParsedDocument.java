@@ -267,12 +267,12 @@ class ParsedDocument {
         } else if (doctypeDeclaration.matches("<!DOCTYPE HTML>")) {
             doctypeClassification = DoctypeClassification.HTML_5;
         } else if (doctypeDeclaration.matches(
-                "<!DOCTYPE [^>]*DTD XHTML(\\+[^ ]+)? 1.0[^>]+")) {
+                "<!DOCTYPE [^>]*DTD XHTML(\\+[^ ]+)? 1\\.0[^>]+>")) {
             doctypeClassification = doctypeDeclaration.matches("RDFa")
                     ? DoctypeClassification.XHTML_10_RDFA
                     : DoctypeClassification.XHTML_10;
         } else if (doctypeDeclaration.matches(
-                "<!DOCTYPE [^>]*DTD XHTML(\\+[^ ]+)? 1.1[^>]+")) {
+                "<!DOCTYPE [^>]*DTD XHTML(\\+[^ ]+)? 1\\.1[^>]+")) {
             doctypeClassification = doctypeDeclaration.matches("RDFa")
                     ? DoctypeClassification.XHTML_11_RDFA
                     : DoctypeClassification.XHTML_11;
