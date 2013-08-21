@@ -279,7 +279,7 @@ class Check {
                     parsedDocument.getCharsetMeta().toLowerCase());
         }
 
-        // Report: No charset declarations
+        // Report: No charset declarations.
         if (charsetDeclarations.isEmpty()) {
             if (!parsedDocument.isServedAsXml()) {
                 Assertion.Level level = parsedDocument.isHtml5()
@@ -288,7 +288,7 @@ class Check {
                         "rep_charset_none", level, null, null, null));
             }
         } else {
-            // Report: Non UTF-8 declarations
+            // Report: Non UTF-8 declarations.
             List<String> nonUtf8declarations = new ArrayList<>();
             for (String declaration : charsetDeclarations) {
                 if (!declaration.matches("utf-8")) {
@@ -301,7 +301,7 @@ class Check {
                         null, null, nonUtf8declarations));
             }
 
-            // Report: More than one distinct declaration
+            // Report: More than one distinct declaration.
             Set distinctDeclarations = new HashSet(charsetDeclarations);
             if (distinctDeclarations.size() > 1) {
                 assertions.add(new Assertion(
@@ -309,7 +309,7 @@ class Check {
                         null, null, new ArrayList(distinctDeclarations)));
             }
 
-            // Report: XML tag charset declaration used
+            // Report: XML tag charset declaration used.
             // TODO these assertions have small differences based on the doctype
             if (parsedDocument.getCharsetXmlDeclaration() != null) {
                 if (parsedDocument.isHtml()) {
@@ -330,6 +330,13 @@ class Check {
                                 parsedDocument.getCharsetXmlDeclaration())));
                     }
                 }
+            }
+
+            // Report: Meta charset tag will cause validation to fail.
+            if (parsedDocument.getCharsetMeta() != null
+                    && !parsedDocument.getCharsetMeta().isEmpty()
+                    && !parsedDocument.isHtml5()) {
+                
             }
         }
     }
