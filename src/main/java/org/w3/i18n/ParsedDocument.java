@@ -15,8 +15,6 @@ package org.w3.i18n;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
@@ -255,6 +253,26 @@ class ParsedDocument {
         return charsetMetaContext;
     }
 
+    public String getCharsetHttp() {
+        return charsetHttp;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public DocumentResource getDocumentResource() {
+        return documentResource;
+    }
+
+    public String getDocumentBody() {
+        return documentBody;
+    }
+
+    public boolean isServedAsXml() {
+        return servedAsXml;
+    }
+
     private static DoctypeClassification classifyDoctype(
             String doctypeDeclaration) {
         DoctypeClassification doctypeClassification;
@@ -283,6 +301,10 @@ class ParsedDocument {
         return doctypeClassification;
     }
 
+    /*
+     * This enum is for convenience, it saves having to declare multiple
+     * booleans (such as "isXhtml10"
+     */
     private enum DoctypeClassification {
 
         HTML("HTML 4.01"),
@@ -326,25 +348,5 @@ class ParsedDocument {
             byteOrderMark = null;
         }
         return byteOrderMark;
-    }
-
-    public String getCharsetHttp() {
-        return charsetHttp;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
-    public DocumentResource getDocumentResource() {
-        return documentResource;
-    }
-
-    public String getDocumentBody() {
-        return documentBody;
-    }
-
-    public boolean isServedAsXml() {
-        return servedAsXml;
     }
 }
