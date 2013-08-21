@@ -5,7 +5,6 @@
 package org.w3.i18n;
 
 import java.util.Arrays;
-import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
