@@ -73,4 +73,40 @@ public class Assertion {
         return "[" + id + "; " + level + "; " + htmlTitle + "; "
                 + htmlDescription + "; " + contexts + "]";
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        boolean equals;
+        if (obj == this) {
+            equals = true;
+        } else if (!(obj instanceof Assertion)) {
+            equals = false;
+        } else {
+            Assertion a = (Assertion) obj;
+            /* TODO This equals method should use all the properties of
+             * Assertion. It is currently simplified for debugging purposes.
+             * ~~~ Joe. */
+            equals = a.id == null ? a.id == null : a.id.equals(this.id);
+//            equals = a.id.equals(this.id)
+//                    ? a.level.equals(this.level)
+//                    ? a.htmlTitle.equals(this.htmlTitle)
+//                    ? a.htmlDescription.equals(this.htmlDescription)
+//                    ? a.contexts.equals(this.contexts)
+//                    : false : false : false : false;
+        }
+        return equals;
+    }
+
+    @Override
+    public int hashCode() {
+        int hashCode = 11;
+        hashCode = hashCode * 31 + (id == null ? 0 : id.hashCode());
+        hashCode = hashCode * 31 + (level.hashCode());
+        hashCode = hashCode * 31
+                + (htmlTitle == null ? 0 : htmlTitle.hashCode());
+        hashCode = hashCode * 31
+                + (htmlDescription == null ? 0 : htmlDescription.hashCode());
+        hashCode = hashCode * 31 + (contexts == null ? 0 : contexts.hashCode());
+        return hashCode;
+    }
 }
