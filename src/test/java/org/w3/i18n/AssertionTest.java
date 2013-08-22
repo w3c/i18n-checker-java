@@ -1,13 +1,18 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/* 
+ * i18n-checker: https://github.com/w3c/i18n-checker
+ *
+ * Copyright © 2013 World Wide Web Consortium, (Massachusetts Institute of
+ * Technology, European Research Consortium for Informatics and Mathematics,
+ * Keio University, Beihang). All Rights Reserved. This work is distributed
+ * under the W3C® Software License [1] in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.
+ * 
+ * [1] http://www.w3.org/Consortium/Legal/2002/copyright-software-20021231
  */
 package org.w3.i18n;
 
 import java.util.Arrays;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -40,18 +45,6 @@ public class AssertionTest {
         d = new Assertion(
                 "test", Assertion.Level.INFO, "test", "",
                 Arrays.asList("1"));
-    }
-
-    @AfterClass
-    public static void tearDownClass() {
-    }
-
-    @Before
-    public void setUp() {
-    }
-
-    @After
-    public void tearDown() {
     }
 
     @Test
