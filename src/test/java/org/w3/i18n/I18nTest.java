@@ -12,29 +12,33 @@
  */
 package org.w3.i18n;
 
+import java.net.URL;
 import java.util.List;
 
 /**
  *
  * @author Joseph J Short
  */
-public class I18nTest {
+public class I18nTest implements Comparable<I18nTest> {
 
     private final String name;
+    private final String description;
     private final String id;
-    private final String url;
+    private final URL url;
     private final String format;
     private final String serveAs;
     private final List<Assertion> expectedAssertions;
 
     public I18nTest(
             String name,
+            String description,
             String id,
-            String url,
+            URL url,
             String format,
             String serveAs,
             List<Assertion> expectedAssertions) {
         this.name = name;
+        this.description = description;
         this.id = id;
         this.url = url;
         this.format = format;
@@ -46,11 +50,15 @@ public class I18nTest {
         return name;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public String getId() {
         return id;
     }
 
-    public String getUrl() {
+    public URL getUrl() {
         return url;
     }
 
@@ -68,8 +76,13 @@ public class I18nTest {
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + ":[" + name + ", " + id + ", "
-                + url + ", " + format + ", " + serveAs + ", "
-                + expectedAssertions + "]";
+        return this.getClass().getSimpleName() + ":[" + name + ", "
+                + description + ", " + id + ", " + url + ", " + format + ", "
+                + serveAs + ", " + expectedAssertions + "]";
+    }
+
+    @Override
+    public int compareTo(I18nTest other) {
+        return name.compareTo(other.name);
     }
 }

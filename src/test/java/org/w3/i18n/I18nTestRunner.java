@@ -14,12 +14,17 @@ package org.w3.i18n;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,15 +33,11 @@ import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;
 import static org.junit.Assert.*;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 /**
  *
  * @author Joseph J Short
  */
-@RunWith(Parameterized.class)
 public class I18nTestRunner {
 
     static {
@@ -44,189 +45,333 @@ public class I18nTestRunner {
     }
     private static final String TEST_URL =
             "http://www.w3.org/International/tests/i18n-checker/generate";
-    // The instance used by JUnit '@Parameters'.
-    private I18nTest i18nTest;
 
-    public I18nTestRunner(I18nTest i18nTest) {
-        this.i18nTest = i18nTest;
-    }
-
-    // Creates I18nTest instances to be used as JUnit '@Parameters'.
-    @Parameters
-    public static Collection<Object[]> data() {
-        Object[] testsCharset = parseTestsFile(
-                new File("target/test-classes/tests_charsets.properties"))
-                .toArray();
-        Object[] testsLanguage = parseTestsFile(
-                new File("target/test-classes/tests_language.properties"))
-                .toArray();
-        Object[] testsMarkup = parseTestsFile(
-                new File("target/test-classes/tests_markup.properties"))
-                .toArray();
-        Object[] testsNonLatin = parseTestsFile(
-                new File("target/test-classes/tests_nonLatin.properties"))
-                .toArray();
-        Collection<Object[]> data = new ArrayList<>();
-        for (Object object : testsCharset) {
-            data.add(new Object[]{object});
-        }
-        for (Object object : testsLanguage) {
-            data.add(new Object[]{object});
-        }
-        for (Object object : testsMarkup) {
-            data.add(new Object[]{object});
-        }
-        for (Object object : testsNonLatin) {
-            data.add(new Object[]{object});
-        }
-        return data;
-    }
-
-    // The JUnit test that uses the '@Parameters' instance.
     @Test
-    public void run() {
-        System.out.println("\nRunning test: " + i18nTest);
-        if (i18nTest.getUrl() != null) {
-            List<Assertion> generatedAssertions;
-            try {
-                generatedAssertions =
-                        I18nChecker.check(new URL(i18nTest.getUrl()));
-            } catch (IOException ex) {
-                throw new RuntimeException(
-                        "Could not retrieve remote test document ("
-                        + i18nTest.getUrl() + ")", ex);
-            }
-            System.out.print("Expected assertions: [");
-            int expectedAssertionCount = 0;
-            for (Assertion assertion : i18nTest.getExpectedAssertions()) {
-                System.out.print(assertion.getId() + ", ");
-                if (generatedAssertions.contains(assertion)) {
-                    expectedAssertionCount++;
-                }
-            }
-            System.out.println("].");
-            System.out.print("Generated assertions: [");
-            for (Assertion assertion : generatedAssertions) {
-                System.out.print(assertion.getId() + ", ");
-            }
-            System.out.println("].");
-            System.out.println("expectedAssertionCount = "
-                    + expectedAssertionCount + " out of "
-                    + i18nTest.getExpectedAssertions().size() + ".");
-            if (expectedAssertionCount
-                    != i18nTest.getExpectedAssertions().size()) {
-                // TODO: This doesn't seem to work.
-                fail("Only " + expectedAssertionCount + " out of "
-                        + i18nTest.getExpectedAssertions().size()
-                        + " expected assertions were generated.");
-            }
+    public void testCharsetTests() {
+        int testsFailed = runTestsForFile(new File(
+                "target/test-classes/tests_charsets.properties"));
+        if (testsFailed > 0) {
+            fail("Failed " + testsFailed + " I18nTests generated from"
+                    + " 'tests_charsets.properties'.");
         }
     }
 
-    public static List<I18nTest> parseTestsFile(File file) {
+    @Test
+    public void testLanguageTests() {
+        int testsFailed = runTestsForFile(new File(
+                "target/test-classes/tests_language.properties"));
+        if (testsFailed > 0) {
+            fail("Failed " + testsFailed + " I18nTests generated from"
+                    + " 'tests_language.properties'.");
+        }
+    }
+
+    @Test
+    public void testMarkupTests() {
+        int testsFailed = runTestsForFile(new File(
+                "target/test-classes/tests_markup.properties"));
+        if (testsFailed > 0) {
+            fail("Failed " + testsFailed + " I18nTests generated from"
+                    + " 'tests_markup.properties'.");
+        }
+    }
+
+    @Test
+    public void testNonLatinTests() {
+        int testsFailed = runTestsForFile(new File(
+                "target/test-classes/tests_nonLatin.properties"));
+        if (testsFailed > 0) {
+            fail("Failed " + testsFailed + " I18nTests generated from"
+                    + " 'tests_nonLatin.properties'.");
+        }
+    }
+
+    private static int runTestsForFile(File file) {
+        int testsFailed = 0;
+        Map<I18nTest, DocumentResource> testsWithResources =
+                prepareDocumentResources(parseTestsFile(file));
+        for (Map.Entry<I18nTest, DocumentResource> entry
+                : testsWithResources.entrySet()) {
+            boolean passed = run(entry.getKey(), entry.getValue());
+            if (!passed) {
+                testsFailed++;
+            }
+        }
+        System.out.println();
+        return testsFailed;
+    }
+
+    /* Prepares a DocumentResource for each distinct URL in the list of
+     * I18nTests and links them together in a map. */
+    private static Map<I18nTest, DocumentResource> prepareDocumentResources(
+            List<I18nTest> i18nTests) {
+        System.out.println("Retrieving remote resources ...");
+
+        Map<I18nTest, DocumentResource> results = new TreeMap<>();
+
+        // Prepare a document resource for each distinct URL.
+        Set<URL> urls = new HashSet<>();
+        for (I18nTest i18nTest : i18nTests) {
+            urls.add(i18nTest.getUrl());
+        }
+        Map<URL, DocumentResource> documentResources;
+        try {
+            documentResources = DocumentResource.getRemote(urls);
+        } catch (IOException ex) {
+            throw new RuntimeException(
+                    "Problem retrieving remote documents for testing.", ex);
+        }
+
+        // Link each I18nTest to a document resource and return the result.
+        for (I18nTest i18nTest : i18nTests) {
+            results.put(i18nTest, documentResources.get(i18nTest.getUrl()));
+        }
+        return results;
+    }
+
+    private static List<I18nTest> parseTestsFile(File file) {
+        System.out.println("Parsing tests file: '" + file + "'.");
+
         Configuration configuration;
         try {
             configuration = new PropertiesConfiguration(file);
         } catch (ConfigurationException ex) {
             throw new RuntimeException(ex);
         }
+
+        // Find all the test definition prefixes (e.g. "charset_19d").
         Iterator<String> keys = configuration.getKeys();
-        Set<String> testNames = new TreeSet<>();
+        Set<String> testPrefixes = new TreeSet<>();
+        Pattern prefixPattern = Pattern.compile("^[^;][^_]+_[^_]+");
         while (keys.hasNext()) {
-            Matcher m = Pattern.compile("[^;][^_]*_[^_]*").matcher(keys.next());
-            if (m.find()) {
-                testNames.add(m.group());
+            Matcher prefixMatcher = prefixPattern.matcher(keys.next());
+            if (prefixMatcher.find()) {
+                testPrefixes.add(prefixMatcher.group());
             }
         }
+
+        // Create I18nTests for each prefix.
+        List<I18nTest> i18nTests = new ArrayList<>();
+        for (String prefix : testPrefixes) {
+            try {
+                List<I18nTest> testsForPrefix =
+                        constructFrom(prefix, configuration);
+                System.out.println("Created " + testsForPrefix.size()
+                        + " I18nTest(s) for prefix \"" + prefix + "\" in '"
+                        + file.getName() + "'.");
+                i18nTests.addAll(testsForPrefix);
+            } catch (TestsFileParsingException ex) {
+                throw new RuntimeException(
+                        "Could not parse '" + file + "'.", ex);
+            }
+        }
+        System.out.println();
+        return i18nTests;
+    }
+
+    /* This methods interprets a test definition with the given prefix in the
+     * given Configuration. The test definition must give expected reports
+     * ("_report[]= ..."). are */
+    private static List<I18nTest> constructFrom(
+            String prefix, Configuration configuration)
+            throws TestsFileParsingException {
         List<I18nTest> i18nTests = new ArrayList<>();
 
-        for (String name : testNames) {
-            // Retrieve keys as they appear in the properties files.
-            String id = configuration.containsKey(name + "_id")
-                    ? configuration.getString(name + "_id").replace("\"", "")
-                    : null;
-            String url = configuration.containsKey(name + "_url")
-                    ? configuration.getString(name + "_url").replace("\"", "")
-                    : null;
-            String testFors = configuration.containsKey(name + "_test_for")
-                    ? configuration.getString(name + "_test_for")
-                    .replace("\"", "")
-                    : null;
-            String[] reports = configuration.containsKey(name + "_report[]")
-                    ? configuration.getStringArray(name + "_report[]") : null;
+        // Retrieve details from the properties files.
+        String propertyDescription = configuration.containsKey(prefix)
+                ? configuration.getString(prefix).replace("\"", "")
+                : null;
+        String propertyId = configuration.containsKey(prefix + "_id")
+                ? configuration.getString(prefix + "_id").replace("\"", "")
+                : null;
+        String propertyUrl = configuration.containsKey(prefix + "_url")
+                ? configuration.getString(prefix + "_url").replace("\"", "")
+                : null;
+        String[] propertyTestFor =
+                configuration.containsKey(prefix + "_test_for")
+                ? configuration.getStringArray(prefix + "_test_for") : null;
+        String[] propertyReport =
+                configuration.containsKey(prefix + "_report[]")
+                ? configuration.getStringArray(prefix + "_report[]") : null;
+        if (propertyReport == null) {
+            String singlePropertyReport =
+                    configuration.containsKey(prefix + "_report")
+                    ? configuration.getString(prefix + "_report") : null;
+            if (singlePropertyReport != null) {
+                propertyReport = new String[]{singlePropertyReport};
+            }
+        }
 
-            // Construct the new I18nTests from the details.
-            List<Assertion> expectedAssertions = new ArrayList<>();
-            if (reports != null) {
-                for (String report : reports) {
-                    report = report.replace("\"", "");
-                    String reportId = report.split("\\{")[0];
-                    expectedAssertions.add(
-                            new Assertion(reportId, null, null, null, null));
+        // Check that vital details are set ('_testFor' and '_report[]').
+        boolean useableTest =
+                propertyTestFor != null && propertyTestFor.length != 0
+                && propertyReport != null && propertyReport.length != 0;
+        // Check that there's at least one non-empty report definition.
+        if (useableTest) {
+            useableTest = true;
+            int i = 0;
+            while (i < propertyReport.length) {
+                propertyReport[i] = propertyReport[i].replace("\"", "");
+                if (propertyReport[i].isEmpty()) {
+                    useableTest = false;
+                }
+                i++;
+            }
+        }
+
+        if (useableTest) {
+
+            // Validate the given URL if present.
+            URL givenUrl = null;
+            if (propertyUrl != null) {
+                try {
+                    givenUrl = new URL(propertyUrl);
+                } catch (MalformedURLException ex) {
+                    throw new TestsFileParsingException("Invalid URL given"
+                            + " by property. Propety name: \"" + prefix
+                            + "_url\", extracted URL: " + propertyUrl + ".",
+                            ex);
                 }
             }
-            if (testFors != null) {
-                String[] testForsArray = testFors.split(",");
-                for (String testFor : testForsArray) {
-                    testFor = testFor.replace("\"", "");
-                    String[] testForSplit = testFor.split(":");
-                    String format = testForSplit[0];
-                    String serveAs = testForSplit.length != 1
-                            ? testForSplit[1] : "html";
-                    String genUrl = url == null && id != null & format != null
-                            & serveAs != null
-                            ? constructTestUrl(id, format, serveAs) : url;
-                    i18nTests.add(new I18nTest(
-                            name, id, genUrl, format, serveAs,
-                            expectedAssertions));
+
+            // Create a list of assertions from the expected reports.
+            List<Assertion> expectedAssertions = new ArrayList<>();
+            for (String report : propertyReport) {
+                if (!report.isEmpty()) {
+                    report = report.replace("}", "");
+                    String[] reportSplit = report.replace("}", "").split("\\{");
+                    String reportId = reportSplit[0];
+                    Assertion.Level level = Assertion.Level.INFO;
+
+                    /* Look for additional details for each '_report[]'
+                     * (e.g. "{severity:warning,tags:2}"). */
+                    if (reportSplit.length != 1) {
+                        String[] details = reportSplit[1].split(":");
+                        for (String detail : details) {
+                            switch (detail.trim()) {
+                                case "severity:info":
+                                    level = Assertion.Level.INFO;
+                                    break;
+                                case "severity:warning":
+                                    level = Assertion.Level.WARNING;
+                                    break;
+                                case "severity:error":
+                                    level = Assertion.Level.ERROR;
+                                    break;
+                            }
+                        }
+                    }
+                    expectedAssertions.add(new Assertion(
+                            reportId, level, "", "", new ArrayList<String>()));
                 }
+            }
+            if (expectedAssertions.isEmpty()) {
+                throw new TestsFileParsingException(
+                        "Could not create any Assertions from  the reports"
+                        + " property for \"" + prefix + "\". Interpreted"
+                        + " reports property: "
+                        + Arrays.toString(propertyReport) + ".");
+            }
+            Collections.sort(expectedAssertions);
+
+            // Prepare test URLs and create I18nTests.
+            for (String testFor : propertyTestFor) {
+                testFor = testFor.replace("\"", "");
+                String[] testForSplit = testFor.split(":");
+                String format = testForSplit[0];
+                String serveAs = testForSplit.length != 1
+                        ? testForSplit[1] : "html";
+                URL testUrl;
+                if (givenUrl == null) {
+                    try {
+                        testUrl = constructTestUrl(propertyId, format, serveAs);
+                    } catch (MalformedURLException ex) {
+                        throw new TestsFileParsingException("Could not"
+                                + " construct a URL from testFor property."
+                                + " <TEST_URL>: " + TEST_URL + ", propety name:"
+                                + " \"" + prefix + "_test_for\".", ex);
+                    }
+                } else {
+                    testUrl = givenUrl;
+                }
+                i18nTests.add(new I18nTest(
+                        prefix, propertyDescription, propertyId, testUrl,
+                        format, serveAs, expectedAssertions));
             }
         }
         return i18nTests;
     }
 
-    private static String constructTestUrl(
-            String id, String format, String serveAs) {
+    private static URL constructTestUrl(
+            String id, String format, String serveAs)
+            throws MalformedURLException {
         if (id == null || format == null || serveAs == null) {
             throw new NullPointerException();
         }
-        return TEST_URL + "?test=" + id + "&format=" + format
-                + "&serveas=" + serveAs;
+        return new URL(TEST_URL + "?test=" + id + "&format=" + format
+                + "&serveas=" + serveAs);
     }
-//    @Test
-//    public void testCharsetTests() {
-//        List<I18nTest> i18nTests = parseTestsFile(
-//                new File("target/test-classes/tests_charsets.properties"));
-//        for (I18nTest i18nTest : i18nTests) {
-//            run(i18nTest);
-//            System.out.println();
-//        }
-//    }
-//    @Test
-//    public void testLanguageTests() {
-//        List<I18nTest> i18nTests = parseTestsFile(
-//                new File("target/test-classes/tests_languages.properties"));
-//        for (I18nTest i18nTest : i18nTests) {
-//            run(i18nTest);
-//            System.out.println();
-//        }
-//    }
-//    @Test
-//    public void testMarkupTests() {
-//        List<I18nTest> i18nTests = parseTestsFile(
-//                new File("target/test-classes/tests_markup.properties"));
-//        for (I18nTest i18nTest : i18nTests) {
-//            run(i18nTest);
-//            System.out.println();
-//        }
-//    }
-//    @Test
-//    public void testNonLatinTests() {
-//        List<I18nTest> i18nTests = parseTestsFile(
-//                new File("target/test-classes/tests_nonLatin.properties"));
-//        for (I18nTest i18nTest : i18nTests) {
-//            run(i18nTest);
-//            System.out.println();
-//        }
-//    }
+
+    /* Returns true if the test succeeds, others false. Prints details of the
+     * test to System.out. */
+    private static boolean run(
+            I18nTest i18nTest, DocumentResource documentResource) {
+        boolean passed;
+        System.out.println("\nRunning test: " + i18nTest + ".");
+
+        // Generate a list of assertions using the checker.
+        List<Assertion> generatedAssertions =
+                new Check(documentResource).getAssertions();
+
+        // Compare the lists of assertions.
+        System.out.println(
+                "Expected assertions: " + i18nTest.getExpectedAssertions());
+        int expectedAssertionsFound = 0;
+        for (Assertion assertion : i18nTest.getExpectedAssertions()) {
+            boolean found = false;
+            int i = generatedAssertions.size();
+            while (found == false && i < generatedAssertions.size()) {
+                // Currently compares only by id and level.
+                if (assertion.getId().equals(
+                        generatedAssertions.get(i).getId())
+                        && assertion.getLevel().equals(
+                        generatedAssertions.get(i).getLevel())) {
+                    found = true;
+                    expectedAssertionsFound++;
+                }
+                i++;
+            }
+            if (generatedAssertions.contains(assertion)) {
+                expectedAssertionsFound++;
+            }
+        }
+        System.out.println("Generated assertions: " + generatedAssertions + ".");
+
+        // Determine result.
+        passed = expectedAssertionsFound
+                == i18nTest.getExpectedAssertions().size();
+        System.out.println("Result: " + (passed ? "Passed" : "FAILED")
+                + " (found " + expectedAssertionsFound + " of "
+                + i18nTest.getExpectedAssertions().size() + " expected, "
+                + generatedAssertions.size() + " generated.)");
+        return passed;
+    }
+
+    public static class TestsFileParsingException extends Exception {
+
+        public TestsFileParsingException() {
+        }
+
+        public TestsFileParsingException(String message) {
+            super(message);
+        }
+
+        public TestsFileParsingException(Throwable cause) {
+            super(cause);
+        }
+
+        public TestsFileParsingException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
 }
