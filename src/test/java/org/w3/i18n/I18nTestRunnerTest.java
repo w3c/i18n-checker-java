@@ -38,7 +38,7 @@ import static org.junit.Assert.*;
  *
  * @author Joseph J Short
  */
-public class I18nTestRunner {
+public class I18nTestRunnerTest {
 
     static {
         // TODO: Parse a 'test.conf' file.
