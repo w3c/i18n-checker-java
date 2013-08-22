@@ -23,9 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -71,18 +68,6 @@ public class DocumentResourceTest {
         }
     }
 
-    @AfterClass
-    public static void tearDownClass() {
-    }
-
-    @Before
-    public void setUp() {
-    }
-
-    @After
-    public void tearDown() {
-    }
-
     @Test
     public void testGetUrl() {
         System.out.println("Testing: getUrl");
@@ -125,6 +110,8 @@ public class DocumentResourceTest {
         // Try using the input stream (may provoke an IOException).
         Scanner scanner = new Scanner(
                 offlineInstance.getBody(), "UTF-8").useDelimiter("\\A");
-        String temp = scanner.hasNext() ? scanner.next() : "";
+        if (scanner.hasNext()) {
+            scanner.next();
+        }
     }
 }
