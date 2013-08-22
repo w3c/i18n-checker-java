@@ -31,7 +31,7 @@ public final class I18nChecker {
     }
 
     public static List<Assertion> check(URL url) throws IOException {
-        return new Check(new DocumentResource(url)).getAssertions();
+        return new Check(DocumentResource.getRemote(url)).getAssertions();
     }
 
     public static List<Assertion> check(

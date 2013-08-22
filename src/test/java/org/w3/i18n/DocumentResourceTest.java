@@ -50,7 +50,7 @@ public class DocumentResourceTest {
 
             // Define online instance.
             onlineInstance =
-                    new DocumentResource(new URL("http://www.w3.org/"));
+                    DocumentResource.getRemote(url);
 
             // Define offline instance.
             InputStream offlineBody = new FileInputStream(
