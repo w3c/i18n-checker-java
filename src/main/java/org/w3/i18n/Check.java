@@ -17,6 +17,7 @@ import java.nio.charset.CharsetEncoder;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ class Check {
         addAssertionRequestHeaders();
         addAssertionCharsetReports();
 
+        Collections.sort(assertions);
     }
 
     public DocumentResource getDocumentResource() {
@@ -78,7 +80,7 @@ class Check {
         assertions.add(new Assertion(
                 "dtd",
                 Assertion.Level.INFO,
-                null,
+                "",
                 parsedDocument.getDoctypeDescription(),
                 Arrays.asList(parsedDocument.getDoctypeDeclaration())));
     }
@@ -88,13 +90,13 @@ class Check {
                 "charset_bom",
                 Assertion.Level.INFO,
                 "Byte order mark (BOM)",
-                null,
+                "",
                 Arrays.asList(parsedDocument.getByteOrderMark())));
     }
 
     private void addAssertionCharsetXmlDeclaration() {
         assertions.add(new Assertion(
-                "charset_xml", Assertion.Level.INFO, null, null,
+                "charset_xml", Assertion.Level.INFO, "", "",
                 Arrays.asList(parsedDocument.getCharsetXmlDeclaration(),
                 parsedDocument.getXmlDeclaration())));
     }
@@ -103,8 +105,8 @@ class Check {
         assertions.add(new Assertion(
                 "charset_meta",
                 Assertion.Level.INFO,
-                null,
-                null,
+                "",
+                "",
                 Arrays.asList(parsedDocument.getCharsetMeta(),
                 parsedDocument.getCharsetMetaContext())));
     }
@@ -118,7 +120,7 @@ class Check {
                     ? langM.group().substring(6, langM.group().length() - 1)
                     : null;
             assertions.add(new Assertion(
-                    "lang_attr_lang", Assertion.Level.INFO, null, null,
+                    "lang_attr_lang", Assertion.Level.INFO, "", "",
                     Arrays.asList(langAttr, htmlTag)));
         }
     }
@@ -136,11 +138,11 @@ class Check {
                     ? contentM.group()
                     .substring(9, contentM.group().length() - 1) : null;
             assertions.add(new Assertion(
-                    "lang_meta", Assertion.Level.INFO, null, null,
+                    "lang_meta", Assertion.Level.INFO, "", "",
                     Arrays.asList(content, metaTag)));
         } else {
-            assertions.add(new Assertion(
-                    "lang_meta", Assertion.Level.INFO, null, null, null));
+            assertions.add(new Assertion("lang_meta", Assertion.Level.INFO,
+                    "", "", new ArrayList<String>()));
         }
     }
 
@@ -151,9 +153,9 @@ class Check {
                     Pattern.compile("dir\"[^\"]*\"").matcher(htmlOpeningTag);
             String dirAttr = dirAttrM.find() ? dirAttrM.group() : null;
             assertions.add(new Assertion(
-                    "dir_default", Assertion.Level.INFO, null, null,
-                    dirAttr == null
-                    ? null : Arrays.asList(dirAttr, htmlOpeningTag)));
+                    "dir_default", Assertion.Level.INFO, "", "",
+                    dirAttr == null ? new ArrayList<String>()
+                    : Arrays.asList(dirAttr, htmlOpeningTag)));
         }
     }
 
@@ -185,7 +187,7 @@ class Check {
         if (!problems.isEmpty()) {
             assertions.add(
                     new Assertion("class_id", Assertion.Level.INFO,
-                    null, null, problems));
+                    "", "", problems));
         }
     }
 
@@ -194,26 +196,26 @@ class Check {
             assertions.add(new Assertion(
                     "message_xhtml5_partial_support",
                     Assertion.Level.MESSAGE,
-                    null,
+                    "",
                     // TODO: Update description from previous project.
                     "This is an xhtml5 document. xhtml5 specifics are not yet"
                     + " integrated in the checker so you may have inacurate"
                     + " results.",
-                    null));
+                    new ArrayList<String>()));
         }
         assertions.add(new Assertion(
                 "mimetype",
                 Assertion.Level.INFO,
-                null,
+                "",
                 parsedDocument.getContentType(),
-                null));
+                new ArrayList<String>()));
     }
 
     private void addAssertionCharsetHttp() {
         String context = "Content-Type: "
                 + parsedDocument.getContentType();
         assertions.add(new Assertion(
-                "charset_http", Assertion.Level.INFO, null, null,
+                "charset_http", Assertion.Level.INFO, "", "",
                 Arrays.asList(parsedDocument.getCharsetHttp(), context)));
 
     }
@@ -242,19 +244,21 @@ class Check {
             }
         }
         assertions.add(new Assertion(
-                "request_headers", Assertion.Level.INFO, null, null, result));
+                "request_headers", Assertion.Level.INFO, "", "", result));
     }
 
     private void addAssertionLangHttp() {
         String contentLanguage =
                 documentResource.getHeader("Content-Language");
-        String context = "Content-Language: " + contentLanguage;
-        assertions.add(new Assertion(
-                "lang_http",
-                Assertion.Level.INFO,
-                null,
-                contentLanguage,
-                Arrays.asList(context)));
+        if (contentLanguage != null) {
+            assertions.add(new Assertion(
+                    "lang_http",
+                    Assertion.Level.INFO,
+                    "",
+                    "",
+                    Arrays.asList(contentLanguage,
+                    "Content-Language: " + contentLanguage)));
+        }
     }
 
     private void addAssertionCharsetReports() {
@@ -284,8 +288,8 @@ class Check {
             if (!parsedDocument.isServedAsXml()) {
                 Assertion.Level level = parsedDocument.isHtml5()
                         ? Assertion.Level.ERROR : Assertion.Level.WARNING;
-                assertions.add(new Assertion(
-                        "rep_charset_none", level, null, null, null));
+                assertions.add(new Assertion("rep_charset_none",
+                        level, "", "", new ArrayList<String>()));
             }
         } else {
             // Report: Non UTF-8 declarations.
@@ -298,7 +302,7 @@ class Check {
             if (!nonUtf8declarations.isEmpty()) {
                 assertions.add(new Assertion(
                         "rep_charset_no_utf8", Assertion.Level.ERROR,
-                        null, null, nonUtf8declarations));
+                        "", "", nonUtf8declarations));
             }
 
             // Report: More than one distinct declaration.
@@ -306,7 +310,7 @@ class Check {
             if (distinctDeclarations.size() > 1) {
                 assertions.add(new Assertion(
                         "rep_charset_conflict", Assertion.Level.ERROR,
-                        null, null, new ArrayList(distinctDeclarations)));
+                        "", "", new ArrayList(distinctDeclarations)));
             }
 
             // Report: XML tag charset declaration used.
@@ -315,18 +319,18 @@ class Check {
                 if (parsedDocument.isHtml()) {
                     assertions.add(new Assertion(
                             "rep_charset_xml_decl", Assertion.Level.ERROR,
-                            null, null, Arrays.asList(
+                            "", "", Arrays.asList(
                             parsedDocument.getCharsetXmlDeclaration())));
                 } else if (!parsedDocument.isServedAsXml()) {
                     if (parsedDocument.isHtml5()) {
                         assertions.add(new Assertion(
                                 "rep_charset_xml_decl", Assertion.Level.ERROR,
-                                null, null, Arrays.asList(
+                                "", "", Arrays.asList(
                                 parsedDocument.getCharsetXmlDeclaration())));
                     } else if (parsedDocument.isXhtml10()) {
                         assertions.add(new Assertion(
                                 "rep_charset_xml_decl", Assertion.Level.ERROR,
-                                null, null, Arrays.asList(
+                                "", "", Arrays.asList(
                                 parsedDocument.getCharsetXmlDeclaration())));
                     }
                 }
@@ -336,7 +340,6 @@ class Check {
             if (parsedDocument.getCharsetMeta() != null
                     && !parsedDocument.getCharsetMeta().isEmpty()
                     && !parsedDocument.isHtml5()) {
-                
             }
         }
     }

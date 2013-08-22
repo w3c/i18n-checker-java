@@ -18,7 +18,7 @@ import java.util.List;
  *
  * @author Joseph J Short
  */
-public class Assertion {
+public class Assertion implements Comparable<Assertion> {
 
     // TODO: Model assertion 'groups'.
     private final String id;
@@ -33,6 +33,17 @@ public class Assertion {
             String htmlTitle,
             String htmlDescription,
             List<String> contexts) {
+        if (id == null || level == null || htmlTitle == null
+                || htmlDescription == null || contexts == null) {
+            throw new NullPointerException("<id>: " + id + ", <level>: "
+                    + level + ", <htmlTitle>: " + htmlTitle
+                    + ", <htmlDescription>: " + htmlDescription
+                    + ", <contexts>: " + contexts + ".");
+        }
+        if (id.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Given <id> is an empty String.");
+        }
         this.id = id;
         this.level = level;
         this.htmlTitle = htmlTitle;
@@ -86,13 +97,12 @@ public class Assertion {
             /* TODO This equals method should use all the properties of
              * Assertion. It is currently simplified for debugging purposes.
              * ~~~ Joe. */
-            equals = a.id == null ? a.id == null : a.id.equals(this.id);
-//            equals = a.id.equals(this.id)
-//                    ? a.level.equals(this.level)
-//                    ? a.htmlTitle.equals(this.htmlTitle)
-//                    ? a.htmlDescription.equals(this.htmlDescription)
-//                    ? a.contexts.equals(this.contexts)
-//                    : false : false : false : false;
+            equals = a.id.equals(this.id)
+                    ? a.level.equals(this.level)
+                    ? a.htmlTitle.equals(this.htmlTitle)
+                    ? a.htmlDescription.equals(this.htmlDescription)
+                    ? a.contexts.equals(this.contexts)
+                    : false : false : false : false;
         }
         return equals;
     }
@@ -108,5 +118,25 @@ public class Assertion {
                 + (htmlDescription == null ? 0 : htmlDescription.hashCode());
         hashCode = hashCode * 31 + (contexts == null ? 0 : contexts.hashCode());
         return hashCode;
+    }
+
+    @Override
+    public int compareTo(Assertion a) {
+        int result = id.compareTo(a.id) < 0 ? -1
+                : id.compareTo(a.id) > 0 ? 1
+                : level.compareTo(a.level) < 0 ? -1
+                : level.compareTo(a.level) > 0 ? 1
+                : htmlTitle.compareTo(a.htmlTitle) < 0 ? -1
+                : htmlTitle.compareTo(a.htmlTitle) > 0 ? 1
+                : htmlDescription.compareTo(a.htmlDescription) < 0 ? -1
+                : htmlDescription.compareTo(a.htmlDescription) > 0 ? 1
+                : 0;
+        // TODO compare contexts?
+        if (result == 0) {
+            result = contexts.size() < a.contexts.size() ? -1
+                    : contexts.size() > a.contexts.size() ? 1
+                    : 0;
+        }
+        return result;
     }
 }
