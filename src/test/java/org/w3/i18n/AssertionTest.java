@@ -29,16 +29,16 @@ public class AssertionTest {
     @BeforeClass
     public static void setUpClass() {
         a = new Assertion(
-                "test", Assertion.Level.INFO, "test", null,
+                "test", Assertion.Level.INFO, "test", "",
                 Arrays.asList("test", "test"));
         b = new Assertion(
-                "test", Assertion.Level.INFO, "test", null,
+                "test", Assertion.Level.INFO, "test", "",
                 Arrays.asList("test", "test"));
         c = new Assertion(
-                "test", Assertion.Level.INFO, "test", null,
+                "test", Assertion.Level.INFO, "test", "",
                 Arrays.asList("test", "test"));
         d = new Assertion(
-                "test", Assertion.Level.INFO, "test", null,
+                "test", Assertion.Level.INFO, "test", "",
                 Arrays.asList("1"));
     }
 
