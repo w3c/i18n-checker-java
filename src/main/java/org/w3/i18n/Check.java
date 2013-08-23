@@ -24,7 +24,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 /**
  * A {@code Check} object represents a stateful process of performing i18n
@@ -305,12 +307,65 @@ class Check {
     }
 
     // rep_charset_1024_limit (ERROR)
+    // "CHARSET REPORT: Meta character encoding declaration not within 1024 ..."
     private void addAssertionRepCharset1024Limit() {
+        if (parsedDocument.isHtml5()
+                && parsedDocument.getCharsetMeta() != null) {
+            String searchString = parsedDocument.getDocumentBody().substring(
+                    0, Math.min(
+                    1024, parsedDocument.getDocumentBody().length()));
+            if (!searchString.contains(
+                    "<meta\\s[^>]*http-equiv=[\\\"\\']?Content-Type[^>]*>")
+                    && !searchString.contains(
+                    "preg_match(\"/<meta\\s[^>]*charset=[^>]*>")) {
+                assertions.add(new Assertion(
+                        "rep_charset_1024_limit",
+                        Assertion.Level.ERROR,
+                        "Character encoding declaration in a <code"
+                        + " class='kw'>meta</code> tag not within 1024 bytes of"
+                        + " the file start",
+                        "Move the character encoding declaration nearer to the"
+                        + " top of the page. Usually it is best to make it the"
+                        + " first thing in the head element.",
+                        new ArrayList<String>()));
+            }
+
+        }
+
+//if ($this->doc->isHTML5 && Information::getFirstVal('charset_meta') != null) {
+//if (!preg_match("/<meta\s[^>]*http-equiv=[\"\']?Content-Type[^>]*>/i", substr($this->markup,0,1024)) &&
+//        !preg_match("/<meta\s[^>]*charset=[^>]*>/i", substr($this->markup,0,1024))) { 
+//        Report::addReport(
+//                'rep_charset_1024_limit',
+//                $category, REPORT_LEVEL_ERROR,
+//                lang('rep_charset_1024_limit'),
+//                lang('rep_charset_1024_limit_expl', Language::format(Utils::codesFromValArray(Information::getValues('charset_meta')), LANG_FORMAT_OL_CODE)),
+//                lang('rep_charset_1024_limit_todo'),
+//                lang('rep_charset_1024_limit_link')
+//                );
+//        }
+//}
     }
 
     // rep_charset_bogus_utf16 (ERROR)
-    // rep_charset_bogus_utf16 (INFO)
+    // "CHARSET REPORT: UTF-16 encoding declaration in a non-UTF-16 document"
     private void addAssertionRepCharsetBogusUtf16() {
+        boolean charsetMetaUtf16;
+        if (parsedDocument.getCharsetMeta() != null) {
+            charsetMetaUtf16 = parsedDocument.getCharsetMeta().toLowerCase()
+                    .contains("utf-16");
+        } else {
+            charsetMetaUtf16 = false;
+        }
+        if (charsetMetaUtf16 && !parsedDocument.isUtf16()) {
+            assertions.add(new Assertion(
+                    "rep_charset_bogus_utf16",
+                    Assertion.Level.ERROR,
+                    "UTF-16 encoding declaration in a non-UTF-16 document",
+                    "Change the encoding declaration to reflect the actual"
+                    + " encoding of the page.",
+                    Arrays.asList(parsedDocument.getCharsetMetaContext())));
+        }
     }
 
     // rep_charset_bom_found (WARNING)
@@ -360,7 +415,35 @@ class Check {
 
     // rep_charset_charset_attr (ERROR)
     // rep_charset_charset_attr (WARNING)
+    // "CHARSET REPORT: charset attribute used on a or link elements"
     private void addAssertionRepCharsetCharsetAttr() {
+        Elements elements = new Elements();
+        elements.addAll(parsedDocument.getDocument().getElementsByTag("a"));
+        elements.addAll(parsedDocument.getDocument().getElementsByTag("link"));
+        int i = 0;
+        boolean addAssertion = false;
+        while (addAssertion && i < elements.size()) {
+            for (Attribute attribute : elements.get(i).attributes()) {
+                if (attribute.getKey().toLowerCase().trim().equals("charset")) {
+                    addAssertion = true;
+                }
+            }
+            i++;
+        }
+        if (addAssertion) {
+            assertions.add(new Assertion(
+                    "rep_charset_charset_attr",
+                    parsedDocument.isHtml5()
+                    ? Assertion.Level.ERROR : Assertion.Level.WARNING,
+                    "<code class='kw'>charset</code> attribute used on <code"
+                    + " class='kw'>a</code> or <code class='kw'>link</code>"
+                    + " elements",
+                    "Remove the charset attribute. If pointing to a page that"
+                    + " is under your control, ensure that any appropriate"
+                    + " character encoding information is provided for that"
+                    + " page.",
+                    new ArrayList<String>()));
+        }
     }
 
     // rep_charset_conflict (ERROR)
@@ -636,7 +719,37 @@ class Check {
     }
 
     // rep_charset_utf16lebe (ERROR)
+    // "CHARSET REPORT: UTF-16LE or UTF-16BE found in a character encoding ..."
     private void addAssertionRepCharsetUtf16lebe() {
+        List<String> nonBomCharsets = Arrays.asList(
+                parsedDocument.getCharsetHttp(),
+                parsedDocument.getCharsetXmlDeclaration(),
+                parsedDocument.getCharsetMeta());
+        int i = 0;
+        boolean addAssertion = false;
+        while (addAssertion && i < nonBomCharsets.size()) {
+            if (nonBomCharsets.get(i) != null) {
+                if (nonBomCharsets.get(i).toLowerCase().replace(" ", "")
+                        .contains("utf-16le")
+                        || nonBomCharsets.get(i).toLowerCase().replace(" ", "")
+                        .contains("utf-16be")) {
+                    addAssertion = true;
+                }
+            }
+            i++;
+        }
+        if (addAssertion) {
+            assertions.add(new Assertion(
+                    "rep_charset_utf16lebe",
+                    Assertion.Level.ERROR,
+                    "UTF-16LE or UTF-16BE found in a character encoding"
+                    + " declaration",
+                    "Ensure that the page starts with a byte-order mark (BOM)"
+                    + " and change the encoding declaration(s) to"
+                    + " \\\"UTF-16\\\".",
+                    // TODO: Add a useful context.
+                    new ArrayList<String>()));
+        }
     }
 
     // rep_charset_xml_decl_used (ERROR)

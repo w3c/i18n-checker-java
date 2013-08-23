@@ -130,7 +130,7 @@ class ParsedDocument {
                 matchingMetaElements.add(e);
             }
         }
-        if (matchingMetaElements.size() == 1) {
+        if (matchingMetaElements.size() > 0) {
             String metaTag = matchingMetaElements.get(0).outerHtml();
             List<String> charsetMatches = Utils.getMatchingGroups(
                     Pattern.compile("charset=\"?[^\";]*"), metaTag);
@@ -143,19 +143,11 @@ class ParsedDocument {
                 charsetMeta = null;
                 charsetMetaContext = null;
             }
-            multipleMetas = false;
-        } else if (matchingMetaElements.isEmpty()) {
-            charsetMeta = null;
-            charsetMetaContext = null;
-            multipleMetas = false;
+            multipleMetas = matchingMetaElements.size() > 1;
         } else {
-            /* TODO: What should be done in a case where there is more than one
-             * meta tag with a charset declaration? Currently they're all
-             * ignored but a 'rep_charset_multiple_metas' Assertion is 
-             * created. ~~~ Joe. */
             charsetMeta = null;
             charsetMetaContext = null;
-            multipleMetas = true;
+            multipleMetas = false;
         }
 
         // Find the Content-Type http header and the details within.
