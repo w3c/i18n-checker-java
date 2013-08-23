@@ -358,12 +358,14 @@ public class I18nTestRunnerTest {
                 new Check(documentResource).getAssertions();
 
         // Compare the lists of assertions.
-        System.out.println(
-                "Expected assertions: " + i18nTest.getExpectedAssertions());
+        System.out.println("Expected assertions:");
+        StringBuilder sb = new StringBuilder("[");
         int expectedAssertionsFound = 0;
         for (Assertion assertion : i18nTest.getExpectedAssertions()) {
+            sb.append(assertion.getId())
+                    .append(" (").append(assertion.getLevel()).append(") ");
             boolean found = false;
-            int i = generatedAssertions.size();
+            int i = 0;
             while (found == false && i < generatedAssertions.size()) {
                 // Currently compares only by id and level.
                 if (assertion.getId().equals(
@@ -375,12 +377,16 @@ public class I18nTestRunnerTest {
                 }
                 i++;
             }
-            if (generatedAssertions.contains(assertion)) {
-                expectedAssertionsFound++;
-            }
+            sb.append(found ? "[found]" : "[NOT FOUND]").append(", ");
         }
-        System.out.println(
-                "Generated assertions: " + generatedAssertions + ".");
+        if (!i18nTest.getExpectedAssertions().isEmpty()) {
+            sb.replace(sb.length() - 2, sb.length() - 1, "]");
+        } else {
+            sb.append("]");
+        }
+        System.out.println(sb);
+        System.out.println("Generated assertions:");
+        print(generatedAssertions);
 
         // Determine result.
         passed = expectedAssertionsFound
@@ -390,6 +396,21 @@ public class I18nTestRunnerTest {
                 + i18nTest.getExpectedAssertions().size() + " expected, "
                 + generatedAssertions.size() + " generated.)");
         return passed;
+    }
+
+    private static void print(List<Assertion> assertions) {
+        StringBuilder sb = new StringBuilder("[");
+        for (Assertion assertion : assertions) {
+            // e.g. "rep_charset_none (WARNING), ".
+            sb.append(assertion.getId()).append(" (")
+                    .append(assertion.getLevel()).append("), ");
+        }
+        if (!assertions.isEmpty()) {
+            sb.replace(sb.length() - 2, sb.length() - 1, "]");
+        } else {
+            sb.append("]");
+        }
+        System.out.println(sb);
     }
 
     public static class TestsFileParsingException extends RuntimeException {
