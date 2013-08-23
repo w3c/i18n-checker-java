@@ -15,6 +15,8 @@ package org.w3.i18n;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
@@ -47,6 +49,8 @@ class ParsedDocument {
     private final String charsetHttp;
     // TODO: remove this string:
     private final String documentBody;
+    private final Set<String> allCharsetDeclarations;
+    private final Set<String> nonUtf8CharsetDeclarations;
 
     public ParsedDocument(DocumentResource documentResource) {
         if (documentResource == null) {
@@ -150,6 +154,33 @@ class ParsedDocument {
         } else {
             this.charsetHttp = null;
             this.servedAsXml = false;
+        }
+
+        this.allCharsetDeclarations = new TreeSet<>();
+        if (this.charsetHttp != null) {
+            this.allCharsetDeclarations.add(
+                    this.charsetHttp.trim().toLowerCase());
+        }
+        if (this.byteOrderMark != null) {
+            this.allCharsetDeclarations.add(this.byteOrderMark
+                    /* This removes " (BE)" or " (LE)" from the UTF-16 and
+                     * UTF-32 byte order marks. */
+                    .trim().toLowerCase().split(" ")[0]);
+        }
+        if (this.charsetXmlDeclaration != null) {
+            this.allCharsetDeclarations.add(
+                    this.charsetXmlDeclaration.trim().toLowerCase());
+        }
+        if (this.charsetMeta != null) {
+            this.allCharsetDeclarations.add(
+                    this.charsetMeta.trim().toLowerCase());
+        }
+
+        this.nonUtf8CharsetDeclarations = new TreeSet<>();
+        for (String charsetDeclaration : this.allCharsetDeclarations) {
+            if (!charsetDeclaration.equals("utf-8")) {
+                nonUtf8CharsetDeclarations.add(charsetDeclaration);
+            }
         }
     }
 
@@ -271,6 +302,14 @@ class ParsedDocument {
 
     public boolean isServedAsXml() {
         return servedAsXml;
+    }
+
+    public Set<String> getAllCharsetDeclarations() {
+        return allCharsetDeclarations;
+    }
+
+    public Set<String> getNonUtf8CharsetDeclarations() {
+        return nonUtf8CharsetDeclarations;
     }
 
     private static DoctypeClassification classifyDoctype(

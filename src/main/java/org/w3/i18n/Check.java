@@ -59,7 +59,51 @@ class Check {
         addAssertionCharsetHttp();
         addAssertionLangHttp();
         addAssertionRequestHeaders();
-        addAssertionCharsetReports();
+//        addAssertionCharsetReports();
+
+
+        addAssertionRepCharset1024Limit();
+        addAssertionRepCharsetBogusUtf16();
+        addAssertionRepCharsetBogusUtf16();
+        addAssertionRepCharsetBomFound();
+        addAssertionRepCharsetBomInContent();
+        addAssertionRepCharsetCharsetAttr();
+        addAssertionRepCharsetCharsetAttr();
+        addAssertionRepCharsetConflict();
+        addAssertionRepCharsetIncorrectUseMeta();
+        addAssertionRepCharsetIncorrectUseMeta();
+        addAssertionRepCharsetMetaCharsetInvalid();
+        addAssertionRepCharsetMetaIneffective();
+        addAssertionRepCharsetMultipleMeta();
+        addAssertionRepCharsetNoEffectiveCharset();
+        addAssertionRepCharsetNoEncodingXml();
+        addAssertionRepCharsetNoInDoc();
+        addAssertionRepCharsetNoUtf8();
+        addAssertionRepCharsetNoVisibleCharset();
+        addAssertionRepCharsetNone();
+        addAssertionRepCharsetNone();
+        addAssertionRepCharsetPragma();
+        addAssertionRepCharsetUtf16Meta();
+        addAssertionRepCharsetUtf16lebe();
+        addAssertionRepCharsetXmlDeclUsed();
+        addAssertionRepCharsetXmlDeclUsed();
+        addAssertionRepLangConflict();
+        addAssertionRepLangContentLangMeta();
+        addAssertionRepLangContentLangMeta();
+        addAssertionRepLangHtmlNoEffectiveLang();
+        addAssertionRepLangMalformedAttr();
+        addAssertionRepLangMissingHtmlAttr();
+        addAssertionRepLangMissingHtmlAttr();
+        addAssertionRepLangMissingXmlAttr();
+        addAssertionRepLangMissingXmlAttr();
+        addAssertionRepLangNoLangAttr();
+        addAssertionRepLangNoLangAttr();
+        addAssertionRepLangXmlAttrInHtml();
+        addAssertionRepLatinNonNfc();
+        addAssertionRepMarkupBdoNoDir();
+        addAssertionRepMarkupDirIncorrect();
+        addAssertionRepMarkupDirIncorrect();
+        addAssertionRepMarkupTagsNoClass();
 
         Collections.sort(assertions);
     }
@@ -261,86 +305,257 @@ class Check {
         }
     }
 
-    private void addAssertionCharsetReports() {
-        // Get all the charset declarations.
-        List<String> charsetDeclarations = new ArrayList<>();
-        if (parsedDocument.getCharsetHttp() != null) {
-            charsetDeclarations.add(
-                    parsedDocument.getCharsetHttp().toLowerCase());
-        }
-        if (parsedDocument.getByteOrderMark() != null) {
-            charsetDeclarations.add(parsedDocument.getByteOrderMark()
-                    /* This removes " (BE)" or " (LE)" from the UTF-16 and
-                     * UTF-32 byte order marks. */
-                    .toLowerCase().split(" ")[0]);
-        }
-        if (parsedDocument.getCharsetXmlDeclaration() != null) {
-            charsetDeclarations.add(
-                    parsedDocument.getCharsetXmlDeclaration().toLowerCase());
-        }
-        if (parsedDocument.getCharsetMeta() != null) {
-            charsetDeclarations.add(
-                    parsedDocument.getCharsetMeta().toLowerCase());
-        }
+//    private void addAssertionCharsetReports() {
+//        // Get all the charset declarations.
+//        Set<String> charsetDeclarations = parsedDocument.getAllCharsetDeclarations();
+//
+//
+//        // Report: No charset declarations.
+//        if (charsetDeclarations.isEmpty()) {
+//            if (!parsedDocument.isServedAsXml()) {
+//                Assertion.Level level = parsedDocument.isHtml5()
+//                        ? Assertion.Level.ERROR : Assertion.Level.WARNING;
+//                assertions.add(new Assertion("rep_charset_none",
+//                        level, "", "", new ArrayList<String>()));
+//            }
+//        } else {
+//            // Report: Non UTF-8 declarations.
+//            List<String> nonUtf8declarations = new ArrayList<>();
+//            for (String declaration : charsetDeclarations) {
+//                if (!declaration.matches("utf-8")) {
+//                    nonUtf8declarations.add(declaration);
+//                }
+//            }
+//            if (!nonUtf8declarations.isEmpty()) {
+//                assertions.add(new Assertion(
+//                        "rep_charset_no_utf8", Assertion.Level.INFO,
+//                        "", "", nonUtf8declarations));
+//            }
+//
+//            // Report: More than one distinct declaration.
+//            Set distinctDeclarations = new HashSet(charsetDeclarations);
+//            if (distinctDeclarations.size() > 1) {
+//                assertions.add(new Assertion(
+//                        "rep_charset_conflict", Assertion.Level.ERROR,
+//                        "", "", new ArrayList(distinctDeclarations)));
+//            }
+//
+//            // Report: XML tag charset declaration used.
+//            // TODO these assertions have small differences based on the doctype
+//            if (parsedDocument.getCharsetXmlDeclaration() != null) {
+//                if (parsedDocument.isHtml()) {
+//                    assertions.add(new Assertion(
+//                            "rep_charset_xml_decl", Assertion.Level.ERROR,
+//                            "", "", Arrays.asList(
+//                            parsedDocument.getCharsetXmlDeclaration())));
+//                } else if (!parsedDocument.isServedAsXml()) {
+//                    if (parsedDocument.isHtml5()) {
+//                        assertions.add(new Assertion(
+//                                "rep_charset_xml_decl", Assertion.Level.ERROR,
+//                                "", "", Arrays.asList(
+//                                parsedDocument.getCharsetXmlDeclaration())));
+//                    } else if (parsedDocument.isXhtml10()) {
+//                        assertions.add(new Assertion(
+//                                "rep_charset_xml_decl", Assertion.Level.ERROR,
+//                                "", "", Arrays.asList(
+//                                parsedDocument.getCharsetXmlDeclaration())));
+//                    }
+//                }
+//            }
+//
+//            // Report: Meta charset tag will cause validation to fail.
+//            if (parsedDocument.getCharsetMeta() != null
+//                    && !parsedDocument.getCharsetMeta().isEmpty()
+//                    && !parsedDocument.isHtml5()) {
+//            }
+//        }
+//    }
 
-        // Report: No charset declarations.
-        if (charsetDeclarations.isEmpty()) {
+    // rep_charset_1024_limit (ERROR)
+    private void addAssertionRepCharset1024Limit() {
+    }
+
+    // rep_charset_bogus_utf16 (ERROR)
+    // rep_charset_bogus_utf16 (INFO)
+    private void addAssertionRepCharsetBogusUtf16() {
+    }
+
+    // rep_charset_bom_found (WARNING)
+    private void addAssertionRepCharsetBomFound() {
+    }
+
+    // rep_charset_bom_in_content (WARNING)
+    private void addAssertionRepCharsetBomInContent() {
+    }
+
+    // rep_charset_charset_attr (ERROR)
+    // rep_charset_charset_attr (WARNING)
+    private void addAssertionRepCharsetCharsetAttr() {
+    }
+
+    // rep_charset_conflict (ERROR)
+    // "CHARSET REPORT: Conflicting character encoding declarations"
+    private void addAssertionRepCharsetConflict() {
+        if (parsedDocument.getAllCharsetDeclarations().size() > 1) {
+            assertions.add(new Assertion(
+                    "rep_charset_conflict",
+                    Assertion.Level.ERROR,
+                    "Conflicting character encoding declarations", 
+                    "Change the character encoding declarations so that they"
+                    + " match.  Ensure that your document is actually saved in"
+                    + " the encoding you choose.",
+                    new ArrayList<>(
+                    parsedDocument.getAllCharsetDeclarations())));
+        }
+    }
+
+    // rep_charset_incorrect_use_meta (ERROR)
+    // rep_charset_incorrect_use_meta (WARNING)
+    private void addAssertionRepCharsetIncorrectUseMeta() {
+    }
+
+    // rep_charset_meta_charset_invalid (WARNING)
+    private void addAssertionRepCharsetMetaCharsetInvalid() {
+    }
+
+    // rep_charset_meta_ineffective (INFO)
+    private void addAssertionRepCharsetMetaIneffective() {
+    }
+
+    // rep_charset_multiple_meta (ERROR)
+    private void addAssertionRepCharsetMultipleMeta() {
+    }
+
+    // rep_charset_no_effective_charset (WARNING)
+    private void addAssertionRepCharsetNoEffectiveCharset() {
+    }
+
+    // rep_charset_no_encoding_xml (WARNING)
+    // (See also 'rep_charset_none'.)
+    // CHARSET REPORT: "No character encoding information"
+    private void addAssertionRepCharsetNoEncodingXml() {
+        if (parsedDocument.getAllCharsetDeclarations().isEmpty()
+                && parsedDocument.isServedAsXml()) {
+            assertions.add(new Assertion(
+                    "rep_charset_no_encoding_xml",
+                    Assertion.Level.WARNING,
+                    "No in-document encoding declaration found",
+                    "Add information to indicate the character encoding of the"
+                    + " page inside the page itself.",
+                    new ArrayList<String>()));
+        }
+    }
+
+    // rep_charset_no_in_doc (WARNING)
+    private void addAssertionRepCharsetNoInDoc() {
+    }
+
+    // rep_charset_no_utf8 (INFO)
+    // "CHARSET REPORT: Non-UTF8 character encoding declared"
+    private void addAssertionRepCharsetNoUtf8() {
+        if (!parsedDocument.getNonUtf8CharsetDeclarations().isEmpty()) {
+            assertions.add(new Assertion(
+                    "rep_charset_no_utf8",
+                    Assertion.Level.INFO, 
+                    "Non-UTF-8 character encoding declared", 
+                    "Set your authoring tool to save your content as UTF-8, and"
+                    + " change the encoding declarations.",
+                    new ArrayList(
+                    parsedDocument.getNonUtf8CharsetDeclarations())));
+        }
+    }
+
+    // rep_charset_no_visible_charset (WARNING)
+    private void addAssertionRepCharsetNoVisibleCharset() {
+    }
+
+    // rep_charset_none (ERROR)
+    // rep_charset_none (WARNING)
+    // (See also 'rep_charset_no_encoding_xml'.)
+    // CHARSET REPORT: "No character encoding information"
+    private void addAssertionRepCharsetNone() {
+        if (parsedDocument.getAllCharsetDeclarations().isEmpty()) {
             if (!parsedDocument.isServedAsXml()) {
                 Assertion.Level level = parsedDocument.isHtml5()
                         ? Assertion.Level.ERROR : Assertion.Level.WARNING;
-                assertions.add(new Assertion("rep_charset_none",
-                        level, "", "", new ArrayList<String>()));
-            }
-        } else {
-            // Report: Non UTF-8 declarations.
-            List<String> nonUtf8declarations = new ArrayList<>();
-            for (String declaration : charsetDeclarations) {
-                if (!declaration.matches("utf-8")) {
-                    nonUtf8declarations.add(declaration);
-                }
-            }
-            if (!nonUtf8declarations.isEmpty()) {
                 assertions.add(new Assertion(
-                        "rep_charset_no_utf8", Assertion.Level.ERROR,
-                        "", "", nonUtf8declarations));
-            }
-
-            // Report: More than one distinct declaration.
-            Set distinctDeclarations = new HashSet(charsetDeclarations);
-            if (distinctDeclarations.size() > 1) {
-                assertions.add(new Assertion(
-                        "rep_charset_conflict", Assertion.Level.ERROR,
-                        "", "", new ArrayList(distinctDeclarations)));
-            }
-
-            // Report: XML tag charset declaration used.
-            // TODO these assertions have small differences based on the doctype
-            if (parsedDocument.getCharsetXmlDeclaration() != null) {
-                if (parsedDocument.isHtml()) {
-                    assertions.add(new Assertion(
-                            "rep_charset_xml_decl", Assertion.Level.ERROR,
-                            "", "", Arrays.asList(
-                            parsedDocument.getCharsetXmlDeclaration())));
-                } else if (!parsedDocument.isServedAsXml()) {
-                    if (parsedDocument.isHtml5()) {
-                        assertions.add(new Assertion(
-                                "rep_charset_xml_decl", Assertion.Level.ERROR,
-                                "", "", Arrays.asList(
-                                parsedDocument.getCharsetXmlDeclaration())));
-                    } else if (parsedDocument.isXhtml10()) {
-                        assertions.add(new Assertion(
-                                "rep_charset_xml_decl", Assertion.Level.ERROR,
-                                "", "", Arrays.asList(
-                                parsedDocument.getCharsetXmlDeclaration())));
-                    }
-                }
-            }
-
-            // Report: Meta charset tag will cause validation to fail.
-            if (parsedDocument.getCharsetMeta() != null
-                    && !parsedDocument.getCharsetMeta().isEmpty()
-                    && !parsedDocument.isHtml5()) {
+                        "rep_charset_none",
+                        level,
+                        "No character encoding information",
+                        "Add information to indicate the character encoding of"
+                        + " the page.",
+                        new ArrayList<String>()));
             }
         }
+    }
+
+    // rep_charset_pragma (INFO)
+    private void addAssertionRepCharsetPragma() {
+    }
+
+    // rep_charset_utf16_meta (ERROR)
+    private void addAssertionRepCharsetUtf16Meta() {
+    }
+
+    // rep_charset_utf16lebe (ERROR)
+    private void addAssertionRepCharsetUtf16lebe() {
+    }
+
+    // rep_charset_xml_decl_used (ERROR)
+    // rep_charset_xml_decl_used (WARNING)
+    private void addAssertionRepCharsetXmlDeclUsed() {
+    }
+
+    // rep_lang_conflict (ERROR)
+    private void addAssertionRepLangConflict() {
+    }
+
+    // rep_lang_content_lang_meta (ERROR)
+    // rep_lang_content_lang_meta (WARNING)
+    private void addAssertionRepLangContentLangMeta() {
+    }
+
+    // rep_lang_html_no_effective_lang (WARNING)
+    private void addAssertionRepLangHtmlNoEffectiveLang() {
+    }
+
+    // rep_lang_malformed_attr (ERROR)
+    private void addAssertionRepLangMalformedAttr() {
+    }
+
+    // rep_lang_missing_html_attr (ERROR)
+    // rep_lang_missing_html_attr (WARNING)
+    private void addAssertionRepLangMissingHtmlAttr() {
+    }
+
+    // rep_lang_missing_xml_attr (ERROR)
+    // rep_lang_missing_xml_attr (WARNING)
+    private void addAssertionRepLangMissingXmlAttr() {
+    }
+
+    // rep_lang_no_lang_attr (INFO)
+    // rep_lang_no_lang_attr (WARNING)
+    private void addAssertionRepLangNoLangAttr() {
+    }
+
+    // rep_lang_xml_attr_in_html (ERROR)
+    private void addAssertionRepLangXmlAttrInHtml() {
+    }
+
+    // rep_latin_non_nfc (WARNING)
+    private void addAssertionRepLatinNonNfc() {
+    }
+
+    // rep_markup_bdo_no_dir (INFO)
+    private void addAssertionRepMarkupBdoNoDir() {
+    }
+
+    // rep_markup_dir_incorrect (ERROR)
+    // rep_markup_dir_incorrect (INFO)
+    private void addAssertionRepMarkupDirIncorrect() {
+    }
+
+    // rep_markup_tags_no_class (INFO)
+    private void addAssertionRepMarkupTagsNoClass() {
     }
 }
