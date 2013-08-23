@@ -18,7 +18,6 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -370,7 +369,6 @@ class Check {
 //            }
 //        }
 //    }
-
     // rep_charset_1024_limit (ERROR)
     private void addAssertionRepCharset1024Limit() {
     }
@@ -400,7 +398,7 @@ class Check {
             assertions.add(new Assertion(
                     "rep_charset_conflict",
                     Assertion.Level.ERROR,
-                    "Conflicting character encoding declarations", 
+                    "Conflicting character encoding declarations",
                     "Change the character encoding declarations so that they"
                     + " match.  Ensure that your document is actually saved in"
                     + " the encoding you choose.",
@@ -415,11 +413,42 @@ class Check {
     }
 
     // rep_charset_meta_charset_invalid (WARNING)
+    // "CHARSET REPORT: Meta charset tag will cause validation to fail"
     private void addAssertionRepCharsetMetaCharsetInvalid() {
+        if (parsedDocument.isHtml5()
+                && parsedDocument.getCharsetMeta() != null) {
+            assertions.add(new Assertion(
+                    "rep_charset_meta_charset_invalid",
+                    Assertion.Level.WARNING,
+                    "A <code class='kw'>meta</code> tag with a <code"
+                    + " class='kw'>charset</code> attribute will cause"
+                    + " validation to fail",
+                    "If you want this page to be valid HTML, replace the <code"
+                    + " class='kw'>charset</code> attribute with <code"
+                    + " class='kw'>http-equiv</code> and <code"
+                    + " class='kw'>content</code> attributes, eg."
+                    + " <code>&lt;meta http-equiv='Content-Type'"
+                    + " content='text/html; charset=utf-8'&gt;</code>.",
+                    Arrays.asList(parsedDocument.getCharsetMeta(),
+                    parsedDocument.getCharsetMetaContext())));
+        }
     }
 
     // rep_charset_meta_ineffective (INFO)
+    // "CHARSET REPORT: Meta encoding declarations don't work with XML"
     private void addAssertionRepCharsetMetaIneffective() {
+        if (parsedDocument.getCharsetMeta() != null
+                && parsedDocument.isServedAsXml()) {
+            assertions.add(new Assertion(
+                    "rep_charset_meta_ineffective",
+                    Assertion.Level.INFO,
+                    "<code class='kw'>meta</code> encoding declarations don't work with XML",
+                    "Unless you sometimes serve this page as <code"
+                    + " class='kw'>text/html</code>, remove the <code"
+                    + " class='kw'>meta</code> tag and ensure you have an XML"
+                    + " declaration with encoding information.",
+                    Arrays.asList(parsedDocument.getCharsetMetaContext())));
+        }
     }
 
     // rep_charset_multiple_meta (ERROR)
@@ -456,8 +485,8 @@ class Check {
         if (!parsedDocument.getNonUtf8CharsetDeclarations().isEmpty()) {
             assertions.add(new Assertion(
                     "rep_charset_no_utf8",
-                    Assertion.Level.INFO, 
-                    "Non-UTF-8 character encoding declared", 
+                    Assertion.Level.INFO,
+                    "Non-UTF-8 character encoding declared",
                     "Set your authoring tool to save your content as UTF-8, and"
                     + " change the encoding declarations.",
                     new ArrayList(
@@ -490,7 +519,24 @@ class Check {
     }
 
     // rep_charset_pragma (INFO)
+    // "CHARSET REPORT: Meta charset declaration uses http-equiv"
     private void addAssertionRepCharsetPragma() {
+        if (parsedDocument.isHtml5()
+                && parsedDocument.getCharsetMeta() != null
+                // TODO: Review and deal with multiple meta tags. ~~~ Joe.
+                && parsedDocument.getCharsetMetaContext()
+                .contains("http-equiv")) {
+            assertions.add(new Assertion(
+                    "rep_charset_pragma",
+                    Assertion.Level.INFO,
+                    "<code class='kw'>meta</code> character encoding"
+                    + " declaration uses <code class='kw'>http-equiv</code>",
+                    "Replace the <code class='kw'>http-equiv</code> and <code"
+                    + " class='kw'>content</code> attributes in your <code"
+                    + " class='kw'>meta</code> tag with a <code"
+                    + " class='kw'>charset</code> attribute.",
+                    Arrays.asList(parsedDocument.getCharsetMetaContext())));
+        }
     }
 
     // rep_charset_utf16_meta (ERROR)
@@ -503,7 +549,32 @@ class Check {
 
     // rep_charset_xml_decl_used (ERROR)
     // rep_charset_xml_decl_used (WARNING)
+    // "CHARSET REPORT: XML Declaration used"
     private void addAssertionRepCharsetXmlDeclUsed() {
+        if (parsedDocument.getCharsetXmlDeclaration() != null) {
+            if (parsedDocument.isHtml()
+                    || parsedDocument.isHtml5()
+                    && !parsedDocument.isServedAsXml()) {
+                assertions.add(new Assertion(
+                        "rep_charset_xml_decl_used",
+                        Assertion.Level.ERROR,
+                        "XML declaration used",
+                        "Remove the XML declaration from your page. Use a <code"
+                        + " class='kw'>meta</code> element instead to declare"
+                        + " the character encoding of the page.",
+                        Arrays.asList(parsedDocument.getXmlDeclaration())));
+            } else if (parsedDocument.isXhtml10()
+                    && !parsedDocument.isServedAsXml()) {
+                assertions.add(new Assertion(
+                        "rep_charset_xml_decl_used",
+                        Assertion.Level.WARNING,
+                        "XML declaration used",
+                        "Since you are using XHTML 1.x but serving it as"
+                        + " text/html, use UTF-8 for your page and remove the"
+                        + " XML declaration.",
+                        Arrays.asList(parsedDocument.getXmlDeclaration())));
+            }
+        }
     }
 
     // rep_lang_conflict (ERROR)
