@@ -44,6 +44,7 @@ class ParsedDocument {
     private final String charsetXmlDeclaration;
     private final String charsetMeta;
     private final String charsetMetaContext;
+    private final boolean multipleMetas;
     private final String contentType;
     private final boolean servedAsXml;
     private final String charsetHttp;
@@ -51,6 +52,7 @@ class ParsedDocument {
     private final String documentBody;
     private final Set<String> allCharsetDeclarations;
     private final Set<String> nonUtf8CharsetDeclarations;
+    private final Set<String> inDocCharsetDeclarations;
 
     public ParsedDocument(DocumentResource documentResource) {
         if (documentResource == null) {
@@ -133,14 +135,19 @@ class ParsedDocument {
                 charsetMeta = null;
                 charsetMetaContext = null;
             }
+            multipleMetas = false;
         } else if (matchingMetaElements.isEmpty()) {
             charsetMeta = null;
             charsetMetaContext = null;
+            multipleMetas = false;
         } else {
             /* TODO: What should be done in a case where there is more than one
-             * meta tag with a charset declaration? */
+             * meta tag with a charset declaration? Currently they're all
+             * ignored but a 'rep_charset_multiple_metas' Assertion is 
+             * created. ~~~ Joe. */
             charsetMeta = null;
             charsetMetaContext = null;
+            multipleMetas = true;
         }
 
         // Find the Content-Type http header and the details within.
@@ -156,24 +163,31 @@ class ParsedDocument {
             this.servedAsXml = false;
         }
 
+        // Aggregate charset declarations.
         this.allCharsetDeclarations = new TreeSet<>();
+        this.inDocCharsetDeclarations = new TreeSet<>();
         if (this.charsetHttp != null) {
-            this.allCharsetDeclarations.add(
-                    this.charsetHttp.trim().toLowerCase());
+            String d = this.charsetHttp.trim().toLowerCase();
+            this.allCharsetDeclarations.add(d);
         }
         if (this.byteOrderMark != null) {
-            this.allCharsetDeclarations.add(this.byteOrderMark
+            String d = this.byteOrderMark
                     /* This removes " (BE)" or " (LE)" from the UTF-16 and
                      * UTF-32 byte order marks. */
-                    .trim().toLowerCase().split(" ")[0]);
+                    .trim().toLowerCase().split(" ")[0];
+            this.allCharsetDeclarations.add(d);
+            this.inDocCharsetDeclarations.add(d);
         }
         if (this.charsetXmlDeclaration != null) {
-            this.allCharsetDeclarations.add(
-                    this.charsetXmlDeclaration.trim().toLowerCase());
+            String d = this.charsetXmlDeclaration.trim().toLowerCase();
+            this.allCharsetDeclarations.add(d);
+            this.inDocCharsetDeclarations.add(d);
         }
         if (this.charsetMeta != null) {
+            String d = this.charsetMeta.trim().toLowerCase();
             this.allCharsetDeclarations.add(
                     this.charsetMeta.trim().toLowerCase());
+            this.inDocCharsetDeclarations.add(d);
         }
 
         this.nonUtf8CharsetDeclarations = new TreeSet<>();
@@ -284,6 +298,10 @@ class ParsedDocument {
         return charsetMetaContext;
     }
 
+    public boolean hasMultipleMetas() {
+        return multipleMetas;
+    }
+
     public String getCharsetHttp() {
         return charsetHttp;
     }
@@ -310,6 +328,10 @@ class ParsedDocument {
 
     public Set<String> getNonUtf8CharsetDeclarations() {
         return nonUtf8CharsetDeclarations;
+    }
+
+    public Set<String> getInDocCharsetDeclarations() {
+        return inDocCharsetDeclarations;
     }
 
     private static DoctypeClassification classifyDoctype(

@@ -304,71 +304,6 @@ class Check {
         }
     }
 
-//    private void addAssertionCharsetReports() {
-//        // Get all the charset declarations.
-//        Set<String> charsetDeclarations = parsedDocument.getAllCharsetDeclarations();
-//
-//
-//        // Report: No charset declarations.
-//        if (charsetDeclarations.isEmpty()) {
-//            if (!parsedDocument.isServedAsXml()) {
-//                Assertion.Level level = parsedDocument.isHtml5()
-//                        ? Assertion.Level.ERROR : Assertion.Level.WARNING;
-//                assertions.add(new Assertion("rep_charset_none",
-//                        level, "", "", new ArrayList<String>()));
-//            }
-//        } else {
-//            // Report: Non UTF-8 declarations.
-//            List<String> nonUtf8declarations = new ArrayList<>();
-//            for (String declaration : charsetDeclarations) {
-//                if (!declaration.matches("utf-8")) {
-//                    nonUtf8declarations.add(declaration);
-//                }
-//            }
-//            if (!nonUtf8declarations.isEmpty()) {
-//                assertions.add(new Assertion(
-//                        "rep_charset_no_utf8", Assertion.Level.INFO,
-//                        "", "", nonUtf8declarations));
-//            }
-//
-//            // Report: More than one distinct declaration.
-//            Set distinctDeclarations = new HashSet(charsetDeclarations);
-//            if (distinctDeclarations.size() > 1) {
-//                assertions.add(new Assertion(
-//                        "rep_charset_conflict", Assertion.Level.ERROR,
-//                        "", "", new ArrayList(distinctDeclarations)));
-//            }
-//
-//            // Report: XML tag charset declaration used.
-//            // TODO these assertions have small differences based on the doctype
-//            if (parsedDocument.getCharsetXmlDeclaration() != null) {
-//                if (parsedDocument.isHtml()) {
-//                    assertions.add(new Assertion(
-//                            "rep_charset_xml_decl", Assertion.Level.ERROR,
-//                            "", "", Arrays.asList(
-//                            parsedDocument.getCharsetXmlDeclaration())));
-//                } else if (!parsedDocument.isServedAsXml()) {
-//                    if (parsedDocument.isHtml5()) {
-//                        assertions.add(new Assertion(
-//                                "rep_charset_xml_decl", Assertion.Level.ERROR,
-//                                "", "", Arrays.asList(
-//                                parsedDocument.getCharsetXmlDeclaration())));
-//                    } else if (parsedDocument.isXhtml10()) {
-//                        assertions.add(new Assertion(
-//                                "rep_charset_xml_decl", Assertion.Level.ERROR,
-//                                "", "", Arrays.asList(
-//                                parsedDocument.getCharsetXmlDeclaration())));
-//                    }
-//                }
-//            }
-//
-//            // Report: Meta charset tag will cause validation to fail.
-//            if (parsedDocument.getCharsetMeta() != null
-//                    && !parsedDocument.getCharsetMeta().isEmpty()
-//                    && !parsedDocument.isHtml5()) {
-//            }
-//        }
-//    }
     // rep_charset_1024_limit (ERROR)
     private void addAssertionRepCharset1024Limit() {
     }
@@ -379,7 +314,26 @@ class Check {
     }
 
     // rep_charset_bom_found (WARNING)
+    // "CHARSET REPORT: UTF-8 BOM found at start of file"
     private void addAssertionRepCharsetBomFound() {
+        if (parsedDocument.getByteOrderMark() != null
+                && parsedDocument.getByteOrderMark().trim().toLowerCase()
+                .contains("utf-8")) {
+            assertions.add(new Assertion(
+                    "rep_charset_bom_found",
+                    Assertion.Level.WARNING,
+                    "BOM found in content",
+                    "Using an editor or an appropriate tool, remove the byte"
+                    + " order mark from the beginning of the file or chunk of"
+                    + " content where it appears. If the problem does arise"
+                    + " from a BOM at the top of an included file, this can"
+                    + " often be achieved by saving the content with"
+                    + " appropriate settings in the editor. On the other hand,"
+                    + " some editors (such as Notepad on Windows) do not give"
+                    + " you a choice, and always add the byte order mark. In"
+                    + " this case you may need to use a different editor.",
+                    Arrays.asList(parsedDocument.getByteOrderMark())));
+        }
     }
 
     // rep_charset_bom_in_content (WARNING)
@@ -409,7 +363,50 @@ class Check {
 
     // rep_charset_incorrect_use_meta (ERROR)
     // rep_charset_incorrect_use_meta (WARNING)
+    // "CHARSET REPORT: Incorrect use of meta encoding declaration"
     private void addAssertionRepCharsetIncorrectUseMeta() {
+        if (parsedDocument.getCharsetMeta() != null
+                && parsedDocument.getCharsetHttp() == null
+                && parsedDocument.getByteOrderMark() == null
+                && parsedDocument.getCharsetXmlDeclaration() == null
+                && parsedDocument.isXhtml1X()) {
+            if (/* Note: These won't be short-circuited if they're moved the
+                     * above 'if'. ~~~ Joe. */parsedDocument.getCharsetMeta()
+                    .trim().toLowerCase()
+                    .equals("utf-8")
+                    || parsedDocument.getCharsetMeta().trim().toLowerCase()
+                    .equals("utf-16")) {
+                if (parsedDocument.isServedAsXml()) {
+                    assertions.add(new Assertion(
+                            "rep_charset_incorrect_use_meta",
+                            Assertion.Level.ERROR,
+                            "Incorrect use of <code class='kw'>meta</code>"
+                            + " encoding declarations",
+                            "Add an XML declaration with encoding information,"
+                            + " or change the character encoding for this page"
+                            + " to UTF-8. If this page is never parsed as HTML,"
+                            + " you can remove the <code class='kw'>meta</code>"
+                            + " tag.",
+                            Arrays.asList(
+                            parsedDocument.getCharsetMetaContext())));
+                } else {
+
+                    assertions.add(new Assertion(
+                            "rep_charset_incorrect_use_meta",
+                            Assertion.Level.WARNING,
+                            "Incorrect use of <code class='kw'>meta</code>"
+                            + " encoding declarations",
+                            "There is no problem for this XHTML document as"
+                            + " long as it is being served as HTML (text/html)."
+                            + " If, however, you expect it to be processed as"
+                            + " XML at some point, you should either add an XML"
+                            + " declaration with encoding information, or use"
+                            + " UTF-8 as the character encoding of your page.",
+                            Arrays.asList(
+                            parsedDocument.getCharsetMetaContext())));
+                }
+            }
+        }
     }
 
     // rep_charset_meta_charset_invalid (WARNING)
@@ -452,7 +449,18 @@ class Check {
     }
 
     // rep_charset_multiple_meta (ERROR)
+    // "CHARSET REPORT: Multiple encoding declarations using the meta tag"
     private void addAssertionRepCharsetMultipleMeta() {
+        if (parsedDocument.hasMultipleMetas()) {
+            assertions.add(new Assertion(
+                    "rep_charset_multiple_meta",
+                    Assertion.Level.ERROR,
+                    "Multiple encoding declarations using the <code"
+                    + " class='kw'>meta</code> tag",
+                    "Edit the markup to remove all but one <code"
+                    + " class='kw'>meta</code> element.",
+                    new ArrayList<String>()));
+        }
     }
 
     // rep_charset_no_effective_charset (WARNING)
@@ -476,7 +484,18 @@ class Check {
     }
 
     // rep_charset_no_in_doc (WARNING)
+    // "CHARSET REPORT: No charset declaration in the document"
     private void addAssertionRepCharsetNoInDoc() {
+        if (parsedDocument.getInDocCharsetDeclarations().isEmpty()
+                && !parsedDocument.getAllCharsetDeclarations().isEmpty()) {
+            assertions.add(new Assertion(
+                    "rep_charset_no_in_doc",
+                    Assertion.Level.WARNING,
+                    "Encoding declared only in HTTP header",
+                    "Add information to indicate the character encoding of the"
+                    + " page inside the page itself.",
+                    new ArrayList<String>()));
+        }
     }
 
     // rep_charset_no_utf8 (INFO)
