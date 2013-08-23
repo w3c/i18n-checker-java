@@ -229,7 +229,7 @@ public class I18nTestRunnerTest {
                     report = report.replace("}", "");
                     String[] reportSplit = report.replace("}", "").split("\\{");
                     String reportId = reportSplit[0];
-                    Assertion.Level level = Assertion.Level.INFO;
+                    Assertion.Level level = Assertion.Level.ERROR;
 
                     /* Look for additional details for each '_report[]'
                      * (e.g. "{severity:warning,tags:2}"). */
