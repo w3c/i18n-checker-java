@@ -39,6 +39,7 @@ class ParsedDocument {
     private final String doctypeDeclaration;
     private final DoctypeClassification doctypeClassification;
     private final String byteOrderMark;
+    private final boolean utf16;
     private final String xmlDeclaration;
     private final String openingHtmlTag;
     private final String charsetXmlDeclaration;
@@ -86,6 +87,13 @@ class ParsedDocument {
 
         // Find the byte order mark (BOM); otherwise declare null.
         this.byteOrderMark = findByteOrderMark(documentBody);
+
+        // "71: $this->isUTF16 = ($bom == 'UTF-16LE' || $bom == 'UTF-16BE')"
+        if (byteOrderMark == null) {
+            this.utf16 = false;
+        } else {
+            this.utf16 = byteOrderMark.toLowerCase().contains("utf-16");
+        }
 
         // Find the XML declaration; otherwise declare null.
         Matcher xmlDeclarationMatcher = Pattern.compile("<\\?xml [^>]*>")
@@ -264,6 +272,10 @@ class ParsedDocument {
      */
     public String getByteOrderMark() {
         return byteOrderMark;
+    }
+
+    public boolean isUtf16() {
+        return utf16;
     }
 
     /**

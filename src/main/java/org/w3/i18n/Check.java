@@ -322,6 +322,27 @@ class Check {
             assertions.add(new Assertion(
                     "rep_charset_bom_found",
                     Assertion.Level.WARNING,
+                    "UTF-8 BOM found at start of file",
+                    "Using an editor or an appropriate tool, remove the byte"
+                    + " order mark from the beginning of the file. This can"
+                    + " often be achieved by saving the document with the"
+                    + " appropriate settings in the editor. On the other hand,"
+                    + " some editors (such as Notepad on Windows) do not give"
+                    + " you a choice, and always add the byte order mark. In"
+                    + " this case you may need to use a different editor.",
+                    Arrays.asList(parsedDocument.getByteOrderMark())));
+        }
+    }
+
+    // rep_charset_bom_in_content (WARNING)
+    // "CHARSET REPORT: BOM in content"
+    private void addAssertionRepCharsetBomInContent() {
+        /* TODO: As far as I can tell, this is what the old version did, but I
+         * don't think it's the correct behaviour. */
+        if (parsedDocument.getByteOrderMark() != null) {
+            assertions.add(new Assertion(
+                    "rep_charset_bom_found",
+                    Assertion.Level.WARNING,
                     "BOM found in content",
                     "Using an editor or an appropriate tool, remove the byte"
                     + " order mark from the beginning of the file or chunk of"
@@ -333,11 +354,8 @@ class Check {
                     + " you a choice, and always add the byte order mark. In"
                     + " this case you may need to use a different editor.",
                     Arrays.asList(parsedDocument.getByteOrderMark())));
-        }
-    }
 
-    // rep_charset_bom_in_content (WARNING)
-    private void addAssertionRepCharsetBomInContent() {
+        }
     }
 
     // rep_charset_charset_attr (ERROR)
@@ -464,7 +482,28 @@ class Check {
     }
 
     // rep_charset_no_effective_charset (WARNING)
+    // "CHARSET REPORT: No effective character encoding information"
     private void addAssertionRepCharsetNoEffectiveCharset() {
+        if (parsedDocument.getCharsetXmlDeclaration() != null
+                && parsedDocument.getCharsetHttp() == null
+                && parsedDocument.getByteOrderMark() == null
+                && parsedDocument.getCharsetMeta() == null) {
+            if (parsedDocument.isHtml()
+                    || parsedDocument.isHtml5()
+                    || (parsedDocument.isXhtml10()
+                    && !parsedDocument.isServedAsXml())) {
+                assertions.add(new Assertion(
+                        "rep_charset_no_effective_charset",
+                        Assertion.Level.WARNING,
+                        "No effective character encoding information",
+                        "Add a <code class='kw'>meta</code> element to indicate the"
+                        + " character encoding of the page. You could also"
+                        + " declare the encoding in the HTTP header, but it is"
+                        + " recommended that you always use a <code"
+                        + " class='kw'>meta</code> element too.",
+                        new ArrayList<String>()));
+            }
+        }
     }
 
     // rep_charset_no_encoding_xml (WARNING)
@@ -514,7 +553,21 @@ class Check {
     }
 
     // rep_charset_no_visible_charset (WARNING)
+    // "CHARSET REPORT: No visible in-document encoding specified"
     private void addAssertionRepCharsetNoVisibleCharset() {
+        if (parsedDocument.getByteOrderMark() != null
+                && parsedDocument.getCharsetXmlDeclaration() == null
+                && parsedDocument.getCharsetMeta() == null) {
+
+            assertions.add(new Assertion(
+                    "rep_charset_no_visible_charset",
+                    Assertion.Level.WARNING,
+                    "No visible in-document encoding declared",
+                    "Add a <code class='kw'>meta</code> tag or XML declaration,"
+                    + " as appropriate, to your page to indicate the character"
+                    + " encoding used.",
+                    new ArrayList<String>()));
+        }
     }
 
     // rep_charset_none (ERROR)
@@ -559,7 +612,27 @@ class Check {
     }
 
     // rep_charset_utf16_meta (ERROR)
+    // "CHARSET REPORT: Meta character encoding declaration used in UTF-16 page"
     private void addAssertionRepCharsetUtf16Meta() {
+        boolean charsetMetaUtf16;
+        if (parsedDocument.getCharsetMeta() != null) {
+            charsetMetaUtf16 = parsedDocument.getCharsetMeta().toLowerCase()
+                    .contains("utf-16");
+        } else {
+            charsetMetaUtf16 = false;
+        }
+        if (charsetMetaUtf16) {
+            if (parsedDocument.isUtf16() && parsedDocument.isHtml5()) {
+                assertions.add(new Assertion(
+                        "rep_charset_utf16_meta",
+                        Assertion.Level.ERROR,
+                        "Meta character encoding declaration used in UTF-16"
+                        + " page",
+                        "Remove the <code class='kw'>meta</code> encoding"
+                        + " declaration.",
+                        Arrays.asList(parsedDocument.getCharsetMetaContext())));
+            }
+        }
     }
 
     // rep_charset_utf16lebe (ERROR)
