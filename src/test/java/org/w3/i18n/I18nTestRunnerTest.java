@@ -48,132 +48,112 @@ public class I18nTestRunnerTest {
 
     @Test
     public void testCharsetTests() {
-        int testsFailed = runTestsForFile(new File(
-                "target/test-classes/tests_charsets.properties"));
+        File file = new File(
+                "target/test-classes/tests_charsets.properties");
+        Map<I18nTest, DocumentResource> testsWithResources =
+                prepareDocumentResources(parseTestsFile(file));
+        int testsFailed = run(testsWithResources);
         if (testsFailed > 0) {
-            fail("Failed " + testsFailed + " I18nTests generated from"
-                    + " 'tests_charsets.properties'.");
+            fail("Failed " + testsFailed + " out of "
+                    + testsWithResources.size() + " I18nTests generated from"
+                    + " '" + file.getName() + "'.");
         }
     }
 
     @Test
     public void testLanguageTests() {
-        int testsFailed = runTestsForFile(new File(
-                "target/test-classes/tests_language.properties"));
+        File file = new File(
+                "target/test-classes/tests_language.properties");
+        Map<I18nTest, DocumentResource> testsWithResources =
+                prepareDocumentResources(parseTestsFile(file));
+        int testsFailed = run(testsWithResources);
         if (testsFailed > 0) {
-            fail("Failed " + testsFailed + " I18nTests generated from"
-                    + " 'tests_language.properties'.");
+            fail("Failed " + testsFailed + " out of "
+                    + testsWithResources.size() + " I18nTests generated from"
+                    + " '" + file.getName() + "'.");
         }
     }
 
     @Test
     public void testMarkupTests() {
-        int testsFailed = runTestsForFile(new File(
-                "target/test-classes/tests_markup.properties"));
+        File file = new File(
+                "target/test-classes/tests_markup.properties");
+        Map<I18nTest, DocumentResource> testsWithResources =
+                prepareDocumentResources(parseTestsFile(file));
+        int testsFailed = run(testsWithResources);
         if (testsFailed > 0) {
-            fail("Failed " + testsFailed + " I18nTests generated from"
-                    + " 'tests_markup.properties'.");
+            fail("Failed " + testsFailed + " out of "
+                    + testsWithResources.size() + " I18nTests generated from"
+                    + " '" + file.getName() + "'.");
         }
     }
 
     @Test
     public void testNonLatinTests() {
-        int testsFailed = runTestsForFile(new File(
-                "target/test-classes/tests_nonLatin.properties"));
-        if (testsFailed > 0) {
-            fail("Failed " + testsFailed + " I18nTests generated from"
-                    + " 'tests_nonLatin.properties'.");
-        }
-    }
-
-    private static int runTestsForFile(File file) {
-        int testsFailed = 0;
+        File file = new File(
+                "target/test-classes/tests_nonLatin.properties");
         Map<I18nTest, DocumentResource> testsWithResources =
                 prepareDocumentResources(parseTestsFile(file));
-        for (Map.Entry<I18nTest, DocumentResource> entry
-                : testsWithResources.entrySet()) {
-            boolean passed = run(entry.getKey(), entry.getValue());
-            if (!passed) {
-                testsFailed++;
-            }
+        int testsFailed = run(testsWithResources);
+        if (testsFailed > 0) {
+            fail("Failed " + testsFailed + " out of "
+                    + testsWithResources.size() + " I18nTests generated from"
+                    + " '" + file.getName() + "'.");
         }
-        System.out.println();
-        return testsFailed;
-    }
-
-    /* Prepares a DocumentResource for each distinct URL in the list of
-     * I18nTests and links them together in a map. */
-    private static Map<I18nTest, DocumentResource> prepareDocumentResources(
-            List<I18nTest> i18nTests) {
-        System.out.println("Retrieving remote resources ...");
-
-        Map<I18nTest, DocumentResource> results = new TreeMap<>();
-
-        // Prepare a document resource for each distinct URL.
-        Set<URL> urls = new HashSet<>();
-        for (I18nTest i18nTest : i18nTests) {
-            urls.add(i18nTest.getUrl());
-        }
-        Map<URL, DocumentResource> documentResources;
-        try {
-            documentResources = DocumentResource.getRemote(urls);
-        } catch (IOException ex) {
-            throw new RuntimeException(
-                    "Problem retrieving remote documents for testing.", ex);
-        }
-
-        // Link each I18nTest to a document resource and return the result.
-        for (I18nTest i18nTest : i18nTests) {
-            results.put(i18nTest, documentResources.get(i18nTest.getUrl()));
-        }
-        return results;
     }
 
     private static List<I18nTest> parseTestsFile(File file) {
         System.out.println("Parsing tests file: '" + file + "'.");
 
-        Configuration configuration;
+        // Parse the properties file.
+        PropertiesConfiguration configuration = new PropertiesConfiguration();
+        // (This method must be called before the file is parsed).
+        configuration.setDelimiterParsingDisabled(true);
         try {
-            configuration = new PropertiesConfiguration(file);
+            configuration.load(file); // (Parses.)
         } catch (ConfigurationException ex) {
             throw new RuntimeException(ex);
         }
 
-        // Find all the test definition prefixes (e.g. "charset_19d").
-        Iterator<String> keys = configuration.getKeys();
-        Set<String> testPrefixes = new TreeSet<>();
-        Pattern prefixPattern = Pattern.compile("^[^;][^_]+_[^_]+");
-        while (keys.hasNext()) {
-            Matcher prefixMatcher = prefixPattern.matcher(keys.next());
-            if (prefixMatcher.find()) {
-                testPrefixes.add(prefixMatcher.group());
-            }
-        }
-
-        // Create I18nTests for each prefix.
+        // Create I18nTests for each prefix (e.g. "charset_5ab") in the file.
+        Set<String> prefixes = findPrefixes(configuration);
         List<I18nTest> i18nTests = new ArrayList<>();
-        for (String prefix : testPrefixes) {
-            try {
-                List<I18nTest> testsForPrefix =
-                        constructFrom(prefix, configuration);
-                System.out.println("Created " + testsForPrefix.size()
-                        + " I18nTest(s) for prefix \"" + prefix + "\" in '"
-                        + file.getName() + "'.");
-                i18nTests.addAll(testsForPrefix);
-            } catch (TestsFileParsingException ex) {
-                throw new RuntimeException(
-                        "Could not parse '" + file + "'.", ex);
-            }
+        for (String prefix : prefixes) {
+            List<I18nTest> testsForPrefix =
+                    interpretTests(prefix, configuration);
+            System.out.println("Created " + testsForPrefix.size()
+                    + " I18nTest(s) for prefix '" + prefix + "' in '"
+                    + file.getName() + "'.");
+            i18nTests.addAll(testsForPrefix);
         }
         System.out.println();
         return i18nTests;
     }
 
+    // Finds each key prefix (e.g. "charset_5ab") in the confugration.
+    private static Set<String> findPrefixes(Configuration configuration) {
+        Set<String> prefixes = new TreeSet<>();
+        Pattern prefixPattern = Pattern.compile("^[^;][^_]+_[^_]+");
+
+        // Iterate through all keys in the configuration.
+        Iterator<String> keyIterator = configuration.getKeys();
+        while (keyIterator.hasNext()) {
+
+            // Add the prefix of each key to the set.
+            String key = keyIterator.next();
+            Matcher prefixMatcher = prefixPattern.matcher(key);
+            if (prefixMatcher.find()) {
+                prefixes.add(prefixMatcher.group());
+            }
+        }
+        return prefixes;
+    }
+
     /* This methods interprets a test definition with the given prefix in the
      * given Configuration. The test definition must give expected reports
-     * ("_report[]= ..."). are */
-    private static List<I18nTest> constructFrom(
-            String prefix, Configuration configuration)
+     * (e.g. "_report[]= ..."). */
+    private static List<I18nTest> interpretTests(
+            String prefix, PropertiesConfiguration configuration)
             throws TestsFileParsingException {
         List<I18nTest> i18nTests = new ArrayList<>();
 
@@ -187,9 +167,9 @@ public class I18nTestRunnerTest {
         String propertyUrl = configuration.containsKey(prefix + "_url")
                 ? configuration.getString(prefix + "_url").replace("\"", "")
                 : null;
-        String[] propertyTestFor =
+        String propertyTestFor =
                 configuration.containsKey(prefix + "_test_for")
-                ? configuration.getStringArray(prefix + "_test_for") : null;
+                ? configuration.getString(prefix + "_test_for") : null;
         String[] propertyReport =
                 configuration.containsKey(prefix + "_report[]")
                 ? configuration.getStringArray(prefix + "_report[]") : null;
@@ -204,10 +184,17 @@ public class I18nTestRunnerTest {
 
         // Check that vital details are set ('_testFor' and '_report[]').
         boolean useableTest =
-                propertyTestFor != null && propertyTestFor.length != 0
+                propertyTestFor != null && !propertyTestFor.isEmpty()
                 && propertyReport != null && propertyReport.length != 0;
         // Check that there's at least one non-empty report definition.
         if (useableTest) {
+            propertyTestFor = propertyTestFor.replaceAll("\"", "");
+            if (propertyTestFor.isEmpty()) {
+                useableTest = false;
+            }
+        }
+        if (useableTest) {
+            // Check that there's at least one non-empty report definition.
             useableTest = true;
             int i = 0;
             while (i < propertyReport.length) {
@@ -229,7 +216,8 @@ public class I18nTestRunnerTest {
                 } catch (MalformedURLException ex) {
                     throw new TestsFileParsingException("Invalid URL given"
                             + " by property. Propety name: \"" + prefix
-                            + "_url\", extracted URL: " + propertyUrl + ".",
+                            + "_url\", extracted URL: " + propertyUrl
+                            + ", file: '" + configuration.getFileName() + "'.",
                             ex);
                 }
             }
@@ -246,7 +234,7 @@ public class I18nTestRunnerTest {
                     /* Look for additional details for each '_report[]'
                      * (e.g. "{severity:warning,tags:2}"). */
                     if (reportSplit.length != 1) {
-                        String[] details = reportSplit[1].split(":");
+                        String[] details = reportSplit[1].split(",");
                         for (String detail : details) {
                             switch (detail.trim()) {
                                 case "severity:info":
@@ -270,12 +258,13 @@ public class I18nTestRunnerTest {
                         "Could not create any Assertions from  the reports"
                         + " property for \"" + prefix + "\". Interpreted"
                         + " reports property: "
-                        + Arrays.toString(propertyReport) + ".");
+                        + Arrays.toString(propertyReport) + ", file: '"
+                        + configuration.getFileName() + "'.");
             }
             Collections.sort(expectedAssertions);
 
-            // Prepare test URLs and create I18nTests.
-            for (String testFor : propertyTestFor) {
+            // Prepare URLs and create I18nTests for each format and servaAs.
+            for (String testFor : propertyTestFor.split(",")) {
                 testFor = testFor.replace("\"", "");
                 String[] testForSplit = testFor.split(":");
                 String format = testForSplit[0];
@@ -284,12 +273,13 @@ public class I18nTestRunnerTest {
                 URL testUrl;
                 if (givenUrl == null) {
                     try {
-                        testUrl = constructTestUrl(propertyId, format, serveAs);
+                        testUrl = assembleTestUrl(propertyId, format, serveAs);
                     } catch (MalformedURLException ex) {
                         throw new TestsFileParsingException("Could not"
                                 + " construct a URL from testFor property."
                                 + " <TEST_URL>: " + TEST_URL + ", propety name:"
-                                + " \"" + prefix + "_test_for\".", ex);
+                                + " \"" + prefix + "_test_for\", file: '"
+                                + configuration.getFileName() + "'.", ex);
                     }
                 } else {
                     testUrl = givenUrl;
@@ -302,7 +292,7 @@ public class I18nTestRunnerTest {
         return i18nTests;
     }
 
-    private static URL constructTestUrl(
+    private static URL assembleTestUrl(
             String id, String format, String serveAs)
             throws MalformedURLException {
         if (id == null || format == null || serveAs == null) {
@@ -310,6 +300,49 @@ public class I18nTestRunnerTest {
         }
         return new URL(TEST_URL + "?test=" + id + "&format=" + format
                 + "&serveas=" + serveAs);
+    }
+
+    /* Prepares a DocumentResource for each distinct URL in the list of
+     * I18nTests and links them together in a map. (This takes advantage of
+     * "DocumentResource.getRemote(Set<URL> urls)".) */
+    private static Map<I18nTest, DocumentResource> prepareDocumentResources(
+            List<I18nTest> i18nTests) {
+        System.out.println("Retrieving remote resources ...");
+
+        Map<I18nTest, DocumentResource> testsWithResources = new TreeMap<>();
+
+        // Prepare a document resource for each distinct URL.
+        Set<URL> urls = new HashSet<>();
+        for (I18nTest i18nTest : i18nTests) {
+            urls.add(i18nTest.getUrl());
+        }
+        Map<URL, DocumentResource> documentResources;
+        try {
+            documentResources = DocumentResource.getRemote(urls);
+        } catch (IOException ex) {
+            throw new RuntimeException(
+                    "Problem retrieving remote documents for testing.", ex);
+        }
+
+        // Link each I18nTest to a document resource and return the result.
+        for (I18nTest i18nTest : i18nTests) {
+            testsWithResources.put(
+                    i18nTest, documentResources.get(i18nTest.getUrl()));
+        }
+        return testsWithResources;
+    }
+
+    private static int run(Map<I18nTest, DocumentResource> testsWithResources) {
+        int testsFailed = 0;
+        for (Map.Entry<I18nTest, DocumentResource> entry
+                : testsWithResources.entrySet()) {
+            boolean passed = run(entry.getKey(), entry.getValue());
+            if (!passed) {
+                testsFailed++;
+            }
+        }
+        System.out.println();
+        return testsFailed;
     }
 
     /* Returns true if the test succeeds, others false. Prints details of the
@@ -320,6 +353,7 @@ public class I18nTestRunnerTest {
         System.out.println("\nRunning test: " + i18nTest + ".");
 
         // Generate a list of assertions using the checker.
+        // TODO: Should this the use API?
         List<Assertion> generatedAssertions =
                 new Check(documentResource).getAssertions();
 
@@ -345,7 +379,8 @@ public class I18nTestRunnerTest {
                 expectedAssertionsFound++;
             }
         }
-        System.out.println("Generated assertions: " + generatedAssertions + ".");
+        System.out.println(
+                "Generated assertions: " + generatedAssertions + ".");
 
         // Determine result.
         passed = expectedAssertionsFound
@@ -357,7 +392,7 @@ public class I18nTestRunnerTest {
         return passed;
     }
 
-    public static class TestsFileParsingException extends Exception {
+    public static class TestsFileParsingException extends RuntimeException {
 
         public TestsFileParsingException() {
         }
