@@ -53,10 +53,12 @@ public class I18nTestRunnerTest {
         Map<I18nTest, DocumentResource> testsWithResources =
                 prepareDocumentResources(parseTestsFile(file));
         int testsFailed = run(testsWithResources);
+        String report = "Failed " + testsFailed + " out of "
+                + testsWithResources.size() + " I18nTests generated from"
+                + " '" + file.getName() + "'.";
+        System.out.println(report);
         if (testsFailed > 0) {
-            fail("Failed " + testsFailed + " out of "
-                    + testsWithResources.size() + " I18nTests generated from"
-                    + " '" + file.getName() + "'.");
+            fail(report);
         }
     }
 
@@ -67,10 +69,12 @@ public class I18nTestRunnerTest {
         Map<I18nTest, DocumentResource> testsWithResources =
                 prepareDocumentResources(parseTestsFile(file));
         int testsFailed = run(testsWithResources);
+        String report = "Failed " + testsFailed + " out of "
+                + testsWithResources.size() + " I18nTests generated from"
+                + " '" + file.getName() + "'.";
+        System.out.println(report);
         if (testsFailed > 0) {
-            fail("Failed " + testsFailed + " out of "
-                    + testsWithResources.size() + " I18nTests generated from"
-                    + " '" + file.getName() + "'.");
+            fail(report);
         }
     }
 
@@ -81,10 +85,12 @@ public class I18nTestRunnerTest {
         Map<I18nTest, DocumentResource> testsWithResources =
                 prepareDocumentResources(parseTestsFile(file));
         int testsFailed = run(testsWithResources);
+        String report = "Failed " + testsFailed + " out of "
+                + testsWithResources.size() + " I18nTests generated from"
+                + " '" + file.getName() + "'.";
+        System.out.println(report);
         if (testsFailed > 0) {
-            fail("Failed " + testsFailed + " out of "
-                    + testsWithResources.size() + " I18nTests generated from"
-                    + " '" + file.getName() + "'.");
+            fail(report);
         }
     }
 
@@ -95,10 +101,12 @@ public class I18nTestRunnerTest {
         Map<I18nTest, DocumentResource> testsWithResources =
                 prepareDocumentResources(parseTestsFile(file));
         int testsFailed = run(testsWithResources);
+        String report = "Failed " + testsFailed + " out of "
+                + testsWithResources.size() + " I18nTests generated from"
+                + " '" + file.getName() + "'.";
+        System.out.println(report);
         if (testsFailed > 0) {
-            fail("Failed " + testsFailed + " out of "
-                    + testsWithResources.size() + " I18nTests generated from"
-                    + " '" + file.getName() + "'.");
+            fail(report);
         }
     }
 
@@ -403,7 +411,8 @@ public class I18nTestRunnerTest {
         for (Assertion assertion : assertions) {
             // e.g. "rep_charset_none (WARNING), ".
             sb.append(assertion.getId()).append(" (")
-                    .append(assertion.getLevel()).append("), ");
+                    .append(assertion.getLevel()).append(") Contexts: [")
+                    .append(assertion.getContexts()).append("], ");
         }
         if (!assertions.isEmpty()) {
             sb.replace(sb.length() - 2, sb.length() - 1, "]");

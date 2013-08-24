@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -65,13 +66,10 @@ class Check {
 
         addAssertionRepCharset1024Limit();
         addAssertionRepCharsetBogusUtf16();
-        addAssertionRepCharsetBogusUtf16();
         addAssertionRepCharsetBomFound();
         addAssertionRepCharsetBomInContent();
         addAssertionRepCharsetCharsetAttr();
-        addAssertionRepCharsetCharsetAttr();
         addAssertionRepCharsetConflict();
-        addAssertionRepCharsetIncorrectUseMeta();
         addAssertionRepCharsetIncorrectUseMeta();
         addAssertionRepCharsetMetaCharsetInvalid();
         addAssertionRepCharsetMetaIneffective();
@@ -82,27 +80,20 @@ class Check {
         addAssertionRepCharsetNoUtf8();
         addAssertionRepCharsetNoVisibleCharset();
         addAssertionRepCharsetNone();
-        addAssertionRepCharsetNone();
         addAssertionRepCharsetPragma();
         addAssertionRepCharsetUtf16Meta();
         addAssertionRepCharsetUtf16lebe();
         addAssertionRepCharsetXmlDeclUsed();
-        addAssertionRepCharsetXmlDeclUsed();
         addAssertionRepLangConflict();
-        addAssertionRepLangContentLangMeta();
         addAssertionRepLangContentLangMeta();
         addAssertionRepLangHtmlNoEffectiveLang();
         addAssertionRepLangMalformedAttr();
         addAssertionRepLangMissingHtmlAttr();
-        addAssertionRepLangMissingHtmlAttr();
         addAssertionRepLangMissingXmlAttr();
-        addAssertionRepLangMissingXmlAttr();
-        addAssertionRepLangNoLangAttr();
         addAssertionRepLangNoLangAttr();
         addAssertionRepLangXmlAttrInHtml();
         addAssertionRepLatinNonNfc();
         addAssertionRepMarkupBdoNoDir();
-        addAssertionRepMarkupDirIncorrect();
         addAssertionRepMarkupDirIncorrect();
         addAssertionRepMarkupTagsNoClass();
 
@@ -137,7 +128,9 @@ class Check {
                     Assertion.Level.INFO,
                     "Byte order mark (BOM)",
                     "",
-                    Arrays.asList(parsedDocument.getByteOrderMark().toString())));
+                    Arrays.asList(
+                    parsedDocument.getByteOrderMark().getCharsetName(),
+                    parsedDocument.getByteOrderMark().toString())));
         }
     }
 
@@ -149,13 +142,18 @@ class Check {
     }
 
     private void addAssertionCharsetMeta() {
+        ArrayList<String> contexts = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry
+                : parsedDocument.getCharsetMetaDeclarations().entrySet()) {
+            contexts.add(entry.getKey());
+            contexts.addAll(entry.getValue());
+        }
         assertions.add(new Assertion(
                 "charset_meta",
                 Assertion.Level.INFO,
                 "",
                 "",
-                Arrays.asList(parsedDocument.getCharsetMeta(),
-                parsedDocument.getCharsetMetaContext())));
+                contexts));
     }
 
     private void addAssertionLangAttr() {
@@ -312,7 +310,7 @@ class Check {
     // "CHARSET REPORT: Meta character encoding declaration not within 1024 ..."
     private void addAssertionRepCharset1024Limit() {
         if (parsedDocument.isHtml5()
-                && parsedDocument.getCharsetMeta() != null) {
+                && !parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
             String searchString = parsedDocument.getDocumentBody().substring(
                     0, Math.min(
                     1024, parsedDocument.getDocumentBody().length()));
@@ -352,21 +350,16 @@ class Check {
     // rep_charset_bogus_utf16 (ERROR)
     // "CHARSET REPORT: UTF-16 encoding declaration in a non-UTF-16 document"
     private void addAssertionRepCharsetBogusUtf16() {
-        boolean charsetMetaUtf16;
-        if (parsedDocument.getCharsetMeta() != null) {
-            charsetMetaUtf16 = parsedDocument.getCharsetMeta().toLowerCase()
-                    .contains("utf-16");
-        } else {
-            charsetMetaUtf16 = false;
-        }
-        if (charsetMetaUtf16 && !parsedDocument.isUtf16()) {
+        if (parsedDocument.getCharsetMetaDeclarations()
+                .get("utf-16") != null && !parsedDocument.isUtf16()) {
             assertions.add(new Assertion(
                     "rep_charset_bogus_utf16",
                     Assertion.Level.ERROR,
                     "UTF-16 encoding declaration in a non-UTF-16 document",
                     "Change the encoding declaration to reflect the actual"
                     + " encoding of the page.",
-                    Arrays.asList(parsedDocument.getCharsetMetaContext())));
+                    new ArrayList<>(parsedDocument.getCharsetMetaDeclarations()
+                    .get("utf-16"))));
         }
     }
 
@@ -395,11 +388,9 @@ class Check {
     // rep_charset_bom_in_content (WARNING)
     // "CHARSET REPORT: BOM in content"
     private void addAssertionRepCharsetBomInContent() {
-        /* TODO: As far as I can tell, this is what the old version did, but I
-         * don't think it's the correct behaviour. */
-        if (parsedDocument.getByteOrderMark() != null) {
+        if (parsedDocument.hasBomInContent()) {
             assertions.add(new Assertion(
-                    "rep_charset_bom_found",
+                    "rep_charset_bom_in_content",
                     Assertion.Level.WARNING,
                     "BOM found in content",
                     "Using an editor or an appropriate tool, remove the byte"
@@ -411,9 +402,7 @@ class Check {
                     + " some editors (such as Notepad on Windows) do not give"
                     + " you a choice, and always add the byte order mark. In"
                     + " this case you may need to use a different editor.",
-                    Arrays.asList(
-                    parsedDocument.getByteOrderMark().toString())));
-
+                    new ArrayList<String>()));
         }
     }
 
@@ -426,12 +415,8 @@ class Check {
         elements.addAll(parsedDocument.getDocument().getElementsByTag("link"));
         int i = 0;
         boolean addAssertion = false;
-        while (addAssertion && i < elements.size()) {
-            for (Attribute attribute : elements.get(i).attributes()) {
-                if (attribute.getKey().toLowerCase().trim().equals("charset")) {
-                    addAssertion = true;
-                }
-            }
+        while (!addAssertion && i < elements.size()) {
+            addAssertion = elements.get(i).hasAttr("charset");
             i++;
         }
         if (addAssertion) {
@@ -470,46 +455,45 @@ class Check {
     // rep_charset_incorrect_use_meta (WARNING)
     // "CHARSET REPORT: Incorrect use of meta encoding declaration"
     private void addAssertionRepCharsetIncorrectUseMeta() {
-        if (parsedDocument.getCharsetMeta() != null
+        if (!parsedDocument.getCharsetMetaDeclarations().isEmpty()
                 && parsedDocument.getCharsetHttp() == null
                 && parsedDocument.getByteOrderMark() == null
                 && parsedDocument.getCharsetXmlDeclaration() == null
-                && parsedDocument.isXhtml1X()) {
-            if (/* Note: These won't be short-circuited if they're moved the
-                     * above 'if'. ~~~ Joe. */parsedDocument.getCharsetMeta()
-                    .trim().toLowerCase()
-                    .equals("utf-8")
-                    || parsedDocument.getCharsetMeta().trim().toLowerCase()
-                    .equals("utf-16")) {
-                if (parsedDocument.isServedAsXml()) {
-                    assertions.add(new Assertion(
-                            "rep_charset_incorrect_use_meta",
-                            Assertion.Level.ERROR,
-                            "Incorrect use of <code class='kw'>meta</code>"
-                            + " encoding declarations",
-                            "Add an XML declaration with encoding information,"
-                            + " or change the character encoding for this page"
-                            + " to UTF-8. If this page is never parsed as HTML,"
-                            + " you can remove the <code class='kw'>meta</code>"
-                            + " tag.",
-                            Arrays.asList(
-                            parsedDocument.getCharsetMetaContext())));
-                } else {
-
-                    assertions.add(new Assertion(
-                            "rep_charset_incorrect_use_meta",
-                            Assertion.Level.WARNING,
-                            "Incorrect use of <code class='kw'>meta</code>"
-                            + " encoding declarations",
-                            "There is no problem for this XHTML document as"
-                            + " long as it is being served as HTML (text/html)."
-                            + " If, however, you expect it to be processed as"
-                            + " XML at some point, you should either add an XML"
-                            + " declaration with encoding information, or use"
-                            + " UTF-8 as the character encoding of your page.",
-                            Arrays.asList(
-                            parsedDocument.getCharsetMetaContext())));
-                }
+                && parsedDocument.isXhtml1X()
+                && !parsedDocument.getCharsetMetaDeclarations()
+                .containsKey("utf-8")
+                && !parsedDocument.getCharsetMetaDeclarations()
+                .containsKey("utf-16")) {
+            List<String> contexts = new ArrayList<>();
+            for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
+                    .values()) {
+                contexts.addAll(list);
+            }
+            if (parsedDocument.isServedAsXml()) {
+                assertions.add(new Assertion(
+                        "rep_charset_incorrect_use_meta",
+                        Assertion.Level.ERROR,
+                        "Incorrect use of <code class='kw'>meta</code>"
+                        + " encoding declarations",
+                        "Add an XML declaration with encoding information,"
+                        + " or change the character encoding for this page"
+                        + " to UTF-8. If this page is never parsed as HTML,"
+                        + " you can remove the <code class='kw'>meta</code>"
+                        + " tag.",
+                        contexts));
+            } else {
+                assertions.add(new Assertion(
+                        "rep_charset_incorrect_use_meta",
+                        Assertion.Level.WARNING,
+                        "Incorrect use of <code class='kw'>meta</code>"
+                        + " encoding declarations",
+                        "There is no problem for this XHTML document as"
+                        + " long as it is being served as HTML (text/html)."
+                        + " If, however, you expect it to be processed as"
+                        + " XML at some point, you should either add an XML"
+                        + " declaration with encoding information, or use"
+                        + " UTF-8 as the character encoding of your page.",
+                        contexts));
             }
         }
     }
@@ -517,8 +501,13 @@ class Check {
     // rep_charset_meta_charset_invalid (WARNING)
     // "CHARSET REPORT: Meta charset tag will cause validation to fail"
     private void addAssertionRepCharsetMetaCharsetInvalid() {
-        if (parsedDocument.isHtml5()
-                && parsedDocument.getCharsetMeta() != null) {
+        if (!parsedDocument.isHtml5()
+                && !parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
+            List<String> contexts = new ArrayList<>();
+            for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
+                    .values()) {
+                contexts.addAll(list);
+            }
             assertions.add(new Assertion(
                     "rep_charset_meta_charset_invalid",
                     Assertion.Level.WARNING,
@@ -531,32 +520,42 @@ class Check {
                     + " class='kw'>content</code> attributes, eg."
                     + " <code>&lt;meta http-equiv='Content-Type'"
                     + " content='text/html; charset=utf-8'&gt;</code>.",
-                    Arrays.asList(parsedDocument.getCharsetMeta(),
-                    parsedDocument.getCharsetMetaContext())));
+                    contexts));
         }
     }
 
     // rep_charset_meta_ineffective (INFO)
     // "CHARSET REPORT: Meta encoding declarations don't work with XML"
     private void addAssertionRepCharsetMetaIneffective() {
-        if (parsedDocument.getCharsetMeta() != null
+        if (!parsedDocument.getCharsetMetaDeclarations().isEmpty()
                 && parsedDocument.isServedAsXml()) {
+            List<String> contexts = new ArrayList<>();
+            for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
+                    .values()) {
+                contexts.addAll(list);
+            }
             assertions.add(new Assertion(
                     "rep_charset_meta_ineffective",
                     Assertion.Level.INFO,
-                    "<code class='kw'>meta</code> encoding declarations don't work with XML",
+                    "<code class='kw'>meta</code> encoding declarations don't"
+                    + " work with XML",
                     "Unless you sometimes serve this page as <code"
                     + " class='kw'>text/html</code>, remove the <code"
                     + " class='kw'>meta</code> tag and ensure you have an XML"
                     + " declaration with encoding information.",
-                    Arrays.asList(parsedDocument.getCharsetMetaContext())));
+                    contexts));
         }
     }
 
     // rep_charset_multiple_meta (ERROR)
     // "CHARSET REPORT: Multiple encoding declarations using the meta tag"
     private void addAssertionRepCharsetMultipleMeta() {
-        if (parsedDocument.hasMultipleMetas()) {
+        if (parsedDocument.getCharsetMetaDeclarations().size() > 1) {
+            List<String> contexts = new ArrayList<>();
+            for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
+                    .values()) {
+                contexts.addAll(list);
+            }
             assertions.add(new Assertion(
                     "rep_charset_multiple_meta",
                     Assertion.Level.ERROR,
@@ -564,7 +563,7 @@ class Check {
                     + " class='kw'>meta</code> tag",
                     "Edit the markup to remove all but one <code"
                     + " class='kw'>meta</code> element.",
-                    new ArrayList<String>()));
+                    contexts));
         }
     }
 
@@ -574,22 +573,21 @@ class Check {
         if (parsedDocument.getCharsetXmlDeclaration() != null
                 && parsedDocument.getCharsetHttp() == null
                 && parsedDocument.getByteOrderMark() == null
-                && parsedDocument.getCharsetMeta() == null) {
-            if (parsedDocument.isHtml()
-                    || parsedDocument.isHtml5()
-                    || (parsedDocument.isXhtml10()
-                    && !parsedDocument.isServedAsXml())) {
-                assertions.add(new Assertion(
-                        "rep_charset_no_effective_charset",
-                        Assertion.Level.WARNING,
-                        "No effective character encoding information",
-                        "Add a <code class='kw'>meta</code> element to indicate the"
-                        + " character encoding of the page. You could also"
-                        + " declare the encoding in the HTTP header, but it is"
-                        + " recommended that you always use a <code"
-                        + " class='kw'>meta</code> element too.",
-                        new ArrayList<String>()));
-            }
+                && parsedDocument.getCharsetMetaDeclarations().isEmpty()
+                && (parsedDocument.isHtml()
+                || parsedDocument.isHtml5()
+                || (parsedDocument.isXhtml10()
+                && !parsedDocument.isServedAsXml()))) {
+            assertions.add(new Assertion(
+                    "rep_charset_no_effective_charset",
+                    Assertion.Level.WARNING,
+                    "No effective character encoding information",
+                    "Add a <code class='kw'>meta</code> element to indicate"
+                    + " the character encoding of the page. You could also"
+                    + " declare the encoding in the HTTP header, but it is"
+                    + " recommended that you always use a <code"
+                    + " class='kw'>meta</code> element too.",
+                    new ArrayList<String>()));
         }
     }
 
@@ -644,7 +642,7 @@ class Check {
     private void addAssertionRepCharsetNoVisibleCharset() {
         if (parsedDocument.getByteOrderMark() != null
                 && parsedDocument.getCharsetXmlDeclaration() == null
-                && parsedDocument.getCharsetMeta() == null) {
+                && parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
 
             assertions.add(new Assertion(
                     "rep_charset_no_visible_charset",
@@ -680,11 +678,18 @@ class Check {
     // rep_charset_pragma (INFO)
     // "CHARSET REPORT: Meta charset declaration uses http-equiv"
     private void addAssertionRepCharsetPragma() {
-        if (parsedDocument.isHtml5()
-                && parsedDocument.getCharsetMeta() != null
-                // TODO: Review and deal with multiple meta tags. ~~~ Joe.
-                && parsedDocument.getCharsetMetaContext()
-                .contains("http-equiv")) {
+        boolean containsPragma = false;
+        List<String> contexts = new ArrayList<>();
+        for (List<String> list : parsedDocument
+                .getCharsetMetaDeclarations().values()) {
+            for (String context : list) {
+                if (context.contains("http-equiv")) {
+                    containsPragma = true;
+                    contexts.add(context);
+                }
+            }
+        }
+        if (parsedDocument.isHtml5() && containsPragma) {
             assertions.add(new Assertion(
                     "rep_charset_pragma",
                     Assertion.Level.INFO,
@@ -694,55 +699,49 @@ class Check {
                     + " class='kw'>content</code> attributes in your <code"
                     + " class='kw'>meta</code> tag with a <code"
                     + " class='kw'>charset</code> attribute.",
-                    Arrays.asList(parsedDocument.getCharsetMetaContext())));
+                    contexts));
         }
     }
 
     // rep_charset_utf16_meta (ERROR)
     // "CHARSET REPORT: Meta character encoding declaration used in UTF-16 page"
     private void addAssertionRepCharsetUtf16Meta() {
-        boolean charsetMetaUtf16;
-        if (parsedDocument.getCharsetMeta() != null) {
-            charsetMetaUtf16 = parsedDocument.getCharsetMeta().toLowerCase()
-                    .contains("utf-16");
-        } else {
-            charsetMetaUtf16 = false;
-        }
-        if (charsetMetaUtf16) {
-            if (parsedDocument.isUtf16() && parsedDocument.isHtml5()) {
-                assertions.add(new Assertion(
-                        "rep_charset_utf16_meta",
-                        Assertion.Level.ERROR,
-                        "Meta character encoding declaration used in UTF-16"
-                        + " page",
-                        "Remove the <code class='kw'>meta</code> encoding"
-                        + " declaration.",
-                        Arrays.asList(parsedDocument.getCharsetMetaContext())));
-            }
+        if (parsedDocument.getCharsetMetaDeclarations().containsKey("utf-16")
+                && parsedDocument.isUtf16() && parsedDocument.isHtml5()) {
+            assertions.add(new Assertion(
+                    "rep_charset_utf16_meta",
+                    Assertion.Level.ERROR,
+                    "Meta character encoding declaration used in UTF-16"
+                    + " page",
+                    "Remove the <code class='kw'>meta</code> encoding"
+                    + " declaration.",
+                    parsedDocument.getCharsetMetaDeclarations().get("utf-16")));
         }
     }
 
     // rep_charset_utf16lebe (ERROR)
     // "CHARSET REPORT: UTF-16LE or UTF-16BE found in a character encoding ..."
     private void addAssertionRepCharsetUtf16lebe() {
-        List<String> nonBomCharsets = Arrays.asList(
-                parsedDocument.getCharsetHttp(),
-                parsedDocument.getCharsetXmlDeclaration(),
-                parsedDocument.getCharsetMeta());
-        int i = 0;
-        boolean addAssertion = false;
-        while (addAssertion && i < nonBomCharsets.size()) {
-            if (nonBomCharsets.get(i) != null) {
-                if (nonBomCharsets.get(i).toLowerCase().replace(" ", "")
-                        .contains("utf-16le")
-                        || nonBomCharsets.get(i).toLowerCase().replace(" ", "")
-                        .contains("utf-16be")) {
-                    addAssertion = true;
+        Map<String, List<String>> nonBomCharsets = new TreeMap<>();
+        List<String> contexts = new ArrayList<>();
+        if (parsedDocument.getCharsetHttp() != null) {
+            nonBomCharsets.put(parsedDocument.getCharsetHttp(),
+                    Arrays.asList(parsedDocument.getContentType()));
+        }
+        if (parsedDocument.getCharsetXmlDeclaration() != null) {
+            nonBomCharsets.put(parsedDocument.getCharsetXmlDeclaration(),
+                    Arrays.asList(parsedDocument.getXmlDeclaration()));
+        }
+        nonBomCharsets.putAll(parsedDocument.getCharsetMetaDeclarations());
+        for (Map.Entry<String, List<String>> entry
+                : nonBomCharsets.entrySet()) {
+            if (entry.getKey().matches("utf-16 ?\\(?[bl]e\\)?")) {
+                for (List<String> list : nonBomCharsets.values()) {
+                    contexts.addAll(list);
                 }
             }
-            i++;
         }
-        if (addAssertion) {
+        if (!contexts.isEmpty()) {
             assertions.add(new Assertion(
                     "rep_charset_utf16lebe",
                     Assertion.Level.ERROR,
@@ -751,8 +750,7 @@ class Check {
                     "Ensure that the page starts with a byte-order mark (BOM)"
                     + " and change the encoding declaration(s) to"
                     + " \\\"UTF-16\\\".",
-                    // TODO: Add a useful context.
-                    new ArrayList<String>()));
+                    contexts));
         }
     }
 

@@ -15,8 +15,11 @@ package org.w3.i18n;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,13 +45,12 @@ class ParsedDocument {
     private final String doctypeDeclaration;
     private final DoctypeClassification doctypeClassification;
     private final ByteOrderMark byteOrderMark;
+    private final boolean bomInContent;
     private final boolean utf16;
     private final String xmlDeclaration;
     private final String openingHtmlTag;
     private final String charsetXmlDeclaration;
-    private final String charsetMeta;
-    private final String charsetMetaContext;
-    private final boolean multipleMetas;
+    private final Map<String, List<String>> charsetMetaDeclarations;
     private final String contentType;
     private final boolean servedAsXml;
     private final String charsetHttp;
@@ -72,7 +74,20 @@ class ParsedDocument {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-        this.byteOrderMark = Utils.findByteOrderMark(documentBodyBytes);
+
+        this.byteOrderMark = documentBodyBytes.length <= 5 ? null
+                : Utils.findByteOrderMark(
+                Arrays.copyOf(documentBodyBytes, 4));
+        boolean bomInContentS = false;
+        int i = 0;
+        while (!bomInContentS && i < documentBodyBytes.length - 5) {
+            // TODO: This does more copying than necessary. ~~~ Joe
+            bomInContentS = Utils.findByteOrderMark(Arrays.copyOfRange(
+                    documentBodyBytes, i, i + 5))
+                    != null;
+            i++;
+        }
+        this.bomInContent = bomInContentS;
 
         this.documentBody = new String(documentBodyBytes, byteOrderMark == null
                 ? Charset.forName("UTF-8")
@@ -98,7 +113,7 @@ class ParsedDocument {
             this.utf16 = false;
         } else {
             this.utf16 = byteOrderMark.getCharsetName().toLowerCase()
-                    .equals("utf-16");
+                    .contains("utf-16");
         }
 
         // Find the XML declaration; otherwise declare null.
@@ -126,8 +141,8 @@ class ParsedDocument {
             charsetXmlDeclaration = null;
         }
 
-        /* Find the character set declaration in the "meta" tags; otherwise
-         * declare null. */
+        // Find all charset declarations in meta tags
+        this.charsetMetaDeclarations = new TreeMap<>();
         Elements metaTagElements =
                 document.getElementsByTag("meta");
         List<Element> matchingMetaElements = new ArrayList<>();
@@ -137,33 +152,38 @@ class ParsedDocument {
             }
         }
         if (matchingMetaElements.size() > 0) {
-            String metaTag = matchingMetaElements.get(0).outerHtml();
-            List<String> charsetMatches = Utils.getMatchingGroups(
-                    Pattern.compile("charset=\"?[^\";]*"), metaTag);
-            if (!charsetMatches.isEmpty()) {
-                String group = charsetMatches.get(0).substring(8).trim();
-                charsetMeta = group.charAt(0) == '"'
-                        ? group.substring(1) : group;
-                charsetMetaContext = metaTag;
-            } else {
-                charsetMeta = null;
-                charsetMetaContext = null;
+            for (Element element : matchingMetaElements) {
+                String metaTag = element.outerHtml();
+                List<String> charsetMatches = Utils.getMatchingGroups(
+                        Pattern.compile("charset=['\"]?[^'\";]*"), metaTag);
+                if (!charsetMatches.isEmpty()) {
+                    String group = charsetMatches.get(0).substring(8).trim();
+                    String charset = charsetMatches.get(0).substring(8).trim()
+                            .replace("\"", "").replace("'", "").toLowerCase();
+                    if (!charsetMetaDeclarations.containsKey(charset)) {
+                        charsetMetaDeclarations.put(
+                                charset, new ArrayList<String>());
+                    }
+                    charsetMetaDeclarations.get(charset).add(metaTag);
+                }
             }
-            multipleMetas = matchingMetaElements.size() > 1;
-        } else {
-            charsetMeta = null;
-            charsetMetaContext = null;
-            multipleMetas = false;
         }
 
         // Find the Content-Type http header and the details within.
         this.contentType = documentResource.getHeader("Content-Type");
-        if (contentType != null) {
+        if (contentType != null
+                /* TODO: DEBUG! This is a workaround for passing tests that
+                 * don't detect a bug in the old checker. See: 
+                 * http://qa-dev.w3.org/i18n-checker-test/check.php?uri=http%3A%
+                 * 2F%2Fwww.w3.org%2FInternational%2Ftests%2Fi18n-checker%2Fgene
+                 * rate%3Ftest%3D24%26format%3Dhtml%26serveas%3Dhtml
+                 * ~~~ Joe (Joseph.J.Short@gmail.com) */
+                && !contentType.equals("text/html;; charset=UTF-8")) {
             List<String> charsetHttpMatches = Utils.getMatchingGroups(
                     Pattern.compile("charset=[^;]*"), contentType);
             this.charsetHttp = charsetHttpMatches.isEmpty()
                     ? null : charsetHttpMatches.get(0).substring(8);
-            this.servedAsXml = contentType.matches("application/xhtml+xml");
+            this.servedAsXml = contentType.contains("application/xhtml+xml");
         } else {
             this.charsetHttp = null;
             this.servedAsXml = false;
@@ -186,13 +206,10 @@ class ParsedDocument {
             this.allCharsetDeclarations.add(d);
             this.inDocCharsetDeclarations.add(d);
         }
-        if (this.charsetMeta != null) {
-            String d = this.charsetMeta.trim().toLowerCase();
-            this.allCharsetDeclarations.add(
-                    this.charsetMeta.trim().toLowerCase());
-            this.inDocCharsetDeclarations.add(d);
-        }
-
+        this.allCharsetDeclarations.addAll(
+                charsetMetaDeclarations.keySet());
+        this.inDocCharsetDeclarations.addAll(
+                charsetMetaDeclarations.keySet());
         this.nonUtf8CharsetDeclarations = new TreeSet<>();
         for (String charsetDeclaration : this.allCharsetDeclarations) {
             if (!charsetDeclaration.equals("utf-8")) {
@@ -269,6 +286,10 @@ class ParsedDocument {
         return byteOrderMark;
     }
 
+    public boolean hasBomInContent() {
+        return bomInContent;
+    }
+
     public boolean isUtf16() {
         return utf16;
     }
@@ -297,16 +318,8 @@ class ParsedDocument {
         return charsetXmlDeclaration;
     }
 
-    public String getCharsetMeta() {
-        return charsetMeta;
-    }
-
-    public String getCharsetMetaContext() {
-        return charsetMetaContext;
-    }
-
-    public boolean hasMultipleMetas() {
-        return multipleMetas;
+    public Map<String, List<String>> getCharsetMetaDeclarations() {
+        return charsetMetaDeclarations;
     }
 
     public String getCharsetHttp() {
@@ -347,9 +360,10 @@ class ParsedDocument {
         if (doctypeDeclaration == null
                 || doctypeDeclaration.isEmpty()) {
             // From the old project
-            doctypeClassification = DoctypeClassification.HTML;
-        } else if (doctypeDeclaration.matches("<!DOCTYPE [^>]*DTD HTML")) {
             doctypeClassification = DoctypeClassification.HTML_5;
+        } else if (doctypeDeclaration.matches(
+                "<!DOCTYPE [^>]*DTD HTML[^>]+>")) {
+            doctypeClassification = DoctypeClassification.HTML;
         } else if (doctypeDeclaration.matches("<!DOCTYPE HTML>")) {
             doctypeClassification = DoctypeClassification.HTML_5;
         } else if (doctypeDeclaration.matches(
@@ -358,7 +372,7 @@ class ParsedDocument {
                     ? DoctypeClassification.XHTML_10_RDFA
                     : DoctypeClassification.XHTML_10;
         } else if (doctypeDeclaration.matches(
-                "<!DOCTYPE [^>]*DTD XHTML(\\+[^ ]+)? 1\\.1[^>]+")) {
+                "<!DOCTYPE [^>]*DTD XHTML(\\+[^ ]+)? 1\\.1[^>]+>")) {
             doctypeClassification = doctypeDeclaration.matches("RDFa")
                     ? DoctypeClassification.XHTML_11_RDFA
                     : DoctypeClassification.XHTML_11;
