@@ -160,18 +160,18 @@ public class ParsedDocumentTest {
     @Test
     public void testGetCharsetMeta() {
         System.out.println("Testing: getCharsetMeta");
-        assertEquals(instance1.getCharsetMeta(), "utf-8");
-        assertEquals(instance2.getCharsetMeta(), "UTF-8");
+        assertTrue(instance1.getCharsetMetaDeclarations().containsKey("utf-8"));
+        assertTrue(instance2.getCharsetMetaDeclarations().containsKey("utf-8"));
     }
 
     @Test
     public void testGetCharsetMetaContext() {
         System.out.println("Testing: getCharsetMetaContext");
-        assertEquals(instance1.getCharsetMetaContext(),
-                "<meta http-equiv=\"Content-Type\" content=\"text/html;"
-                + " charset=utf-8\" />");
-        assertEquals(instance2.getCharsetMetaContext(),
-                "<meta charset=\"UTF-8\" />");
+        assertTrue(instance1.getCharsetMetaDeclarations().get("utf-8")
+                .contains("<meta http-equiv=\"Content-Type\""
+                + " content=\"text/html; charset=utf-8\" />"));
+        assertTrue(instance2.getCharsetMetaDeclarations().get("utf-8")
+                .contains("<meta charset=\"UTF-8\" />"));
     }
 
     @Test
