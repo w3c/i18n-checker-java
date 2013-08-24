@@ -14,6 +14,7 @@ package org.w3.i18n;
 
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Response;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -113,7 +114,9 @@ class DocumentResource {
         }
         // Create a DocumentResource from the response.
         return new DocumentResource(
-                url, response.getResponseBodyAsStream(),
+                url, new ByteArrayInputStream(
+                // TODO: currently a blocking operation.
+                response.getResponseBodyAsBytes()),
                 getCaseInsensitiveHeaders(response.getHeaders()));
     }
 

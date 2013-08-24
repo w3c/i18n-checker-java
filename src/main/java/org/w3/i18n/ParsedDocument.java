@@ -13,12 +13,15 @@
 package org.w3.i18n;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.io.ByteOrderMark;
+import org.apache.commons.io.IOUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -38,7 +41,7 @@ class ParsedDocument {
     private final Document document;
     private final String doctypeDeclaration;
     private final DoctypeClassification doctypeClassification;
-    private final String byteOrderMark;
+    private final ByteOrderMark byteOrderMark;
     private final boolean utf16;
     private final String xmlDeclaration;
     private final String openingHtmlTag;
@@ -62,19 +65,23 @@ class ParsedDocument {
         }
         this.documentResource = documentResource;
 
-        // Use the HTML parser on the document body.
+        // TODO: Currently a blocking operation.
+        byte[] documentBodyBytes;
         try {
-            this.document = Jsoup.parse(
-                    documentResource.getBody(),
-                    // TODO: Find charset first for this occasion.
-                    "UTF-8",
-                    documentResource.getUrl().toString());
+            documentBodyBytes = IOUtils.toByteArray(documentResource.getBody());
         } catch (IOException ex) {
-            throw new RuntimeException("Problem parsing document body.");
+            throw new RuntimeException(ex);
         }
+        this.byteOrderMark = Utils.findByteOrderMark(documentBodyBytes);
 
-        // TODO: Work around using a input stream instead.
-        this.documentBody = document.toString();
+        this.documentBody = new String(documentBodyBytes, byteOrderMark == null
+                ? Charset.forName("UTF-8")
+                : Charset.forName(byteOrderMark.getCharsetName()));
+
+
+        // Use the HTML parser on the document body.
+        this.document = Jsoup.parse(
+                documentBody, documentResource.getUrl().toString());
 
         // Find the doctype declaration; otherwise declare null.
         Matcher dtdMatcher = Pattern.compile("<!DOCTYPE[^>]*>").matcher(
@@ -85,14 +92,13 @@ class ParsedDocument {
         // Classify the doctype declaration. (See "DoctypeClassification" enum.)
         this.doctypeClassification = classifyDoctype(doctypeDeclaration);
 
-        // Find the byte order mark (BOM); otherwise declare null.
-        this.byteOrderMark = findByteOrderMark(documentBody);
 
         // "71: $this->isUTF16 = ($bom == 'UTF-16LE' || $bom == 'UTF-16BE')"
         if (byteOrderMark == null) {
             this.utf16 = false;
         } else {
-            this.utf16 = byteOrderMark.toLowerCase().contains("utf-16");
+            this.utf16 = byteOrderMark.getCharsetName().toLowerCase()
+                    .equals("utf-16");
         }
 
         // Find the XML declaration; otherwise declare null.
@@ -171,10 +177,7 @@ class ParsedDocument {
             this.allCharsetDeclarations.add(d);
         }
         if (this.byteOrderMark != null) {
-            String d = this.byteOrderMark
-                    /* This removes " (BE)" or " (LE)" from the UTF-16 and
-                     * UTF-32 byte order marks. */
-                    .trim().toLowerCase().split(" ")[0];
+            String d = this.byteOrderMark.getCharsetName().toLowerCase();
             this.allCharsetDeclarations.add(d);
             this.inDocCharsetDeclarations.add(d);
         }
@@ -262,7 +265,7 @@ class ParsedDocument {
      * @return the byte order mark (BOM) of the document; or null if there was
      * none.
      */
-    public String getByteOrderMark() {
+    public ByteOrderMark getByteOrderMark() {
         return byteOrderMark;
     }
 
@@ -387,31 +390,5 @@ class ParsedDocument {
         public String getDescription() {
             return description;
         }
-    }
-
-    private static String findByteOrderMark(String str) {
-        if (str == null) {
-            throw new NullPointerException();
-        }
-        String byteOrderMark;
-        /*
-         * TODO: I may have introduced an error here due to not explicitly
-         * handling the character encoding of the string. ~~~~~ Joe S.
-         */
-        byte[] firstCodePoints = str.substring(0, 3).getBytes();
-        if (firstCodePoints[0] == 239
-                && firstCodePoints[1] == 187
-                && firstCodePoints[2] == 191) {
-            byteOrderMark = "UTF-8";
-        } else if (firstCodePoints[0] == 254
-                && firstCodePoints[1] == 255) {
-            byteOrderMark = "UTF-16 (BE)";
-        } else if (firstCodePoints[0] == 255
-                && firstCodePoints[1] == 254) {
-            byteOrderMark = "UTF-16 (LE)";
-        } else {
-            byteOrderMark = null;
-        }
-        return byteOrderMark;
     }
 }

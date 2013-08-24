@@ -131,12 +131,14 @@ class Check {
     }
 
     private void addAssertionCharsetBom() {
-        assertions.add(new Assertion(
-                "charset_bom",
-                Assertion.Level.INFO,
-                "Byte order mark (BOM)",
-                "",
-                Arrays.asList(parsedDocument.getByteOrderMark())));
+        if (parsedDocument.getByteOrderMark() != null) {
+            assertions.add(new Assertion(
+                    "charset_bom",
+                    Assertion.Level.INFO,
+                    "Byte order mark (BOM)",
+                    "",
+                    Arrays.asList(parsedDocument.getByteOrderMark().toString())));
+        }
     }
 
     private void addAssertionCharsetXmlDeclaration() {
@@ -372,8 +374,8 @@ class Check {
     // "CHARSET REPORT: UTF-8 BOM found at start of file"
     private void addAssertionRepCharsetBomFound() {
         if (parsedDocument.getByteOrderMark() != null
-                && parsedDocument.getByteOrderMark().trim().toLowerCase()
-                .contains("utf-8")) {
+                && parsedDocument.getByteOrderMark()
+                .getCharsetName().trim().toLowerCase().contains("utf-8")) {
             assertions.add(new Assertion(
                     "rep_charset_bom_found",
                     Assertion.Level.WARNING,
@@ -385,7 +387,8 @@ class Check {
                     + " some editors (such as Notepad on Windows) do not give"
                     + " you a choice, and always add the byte order mark. In"
                     + " this case you may need to use a different editor.",
-                    Arrays.asList(parsedDocument.getByteOrderMark())));
+                    Arrays.asList(
+                    parsedDocument.getByteOrderMark().toString())));
         }
     }
 
@@ -408,7 +411,8 @@ class Check {
                     + " some editors (such as Notepad on Windows) do not give"
                     + " you a choice, and always add the byte order mark. In"
                     + " this case you may need to use a different editor.",
-                    Arrays.asList(parsedDocument.getByteOrderMark())));
+                    Arrays.asList(
+                    parsedDocument.getByteOrderMark().toString())));
 
         }
     }

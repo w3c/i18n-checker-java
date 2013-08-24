@@ -12,10 +12,16 @@
  */
 package org.w3.i18n;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.io.ByteOrderMark;
+import org.apache.commons.io.input.BOMInputStream;
 
 /**
  *
@@ -50,5 +56,24 @@ class Utils {
             matchingGroups.add(matcher.group());
         }
         return matchingGroups;
+    }
+
+    public static ByteOrderMark findByteOrderMark(byte[] bytes) {
+        if (bytes == null) {
+            throw new NullPointerException("bytes: " + bytes);
+        }
+        ByteOrderMark byteOrderMark;
+        try {
+            byteOrderMark = new BOMInputStream(
+                    new ByteArrayInputStream(bytes),
+                    ByteOrderMark.UTF_8,
+                    ByteOrderMark.UTF_16BE,
+                    ByteOrderMark.UTF_16LE,
+                    ByteOrderMark.UTF_32BE,
+                    ByteOrderMark.UTF_32LE).getBOM();
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+        return byteOrderMark;
     }
 }
