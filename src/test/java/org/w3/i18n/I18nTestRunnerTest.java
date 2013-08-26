@@ -135,6 +135,7 @@ public class I18nTestRunnerTest {
             i18nTests.addAll(testsForPrefix);
         }
         System.out.println();
+        Collections.sort(i18nTests);
         return i18nTests;
     }
 
@@ -237,7 +238,7 @@ public class I18nTestRunnerTest {
                     report = report.replace("}", "");
                     String[] reportSplit = report.replace("}", "").split("\\{");
                     String reportId = reportSplit[0];
-                    Assertion.Level level = Assertion.Level.ERROR;
+                    Assertion.Level level = Assertion.Level.WARNING;
 
                     /* Look for additional details for each '_report[]'
                      * (e.g. "{severity:warning,tags:2}"). */

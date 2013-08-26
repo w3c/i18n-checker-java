@@ -83,6 +83,12 @@ public class I18nTest implements Comparable<I18nTest> {
 
     @Override
     public int compareTo(I18nTest other) {
-        return name.compareTo(other.name);
+        return name.compareTo(other.name) < 0 ? -1
+                : name.compareTo(other.name) > 0 ? 1
+                : format.compareTo(other.format) < 0 ? -1
+                : format.compareTo(other.format) > 0 ? 1
+                : serveAs.compareTo(other.serveAs) < 0 ? -1
+                : serveAs.compareTo(other.serveAs) > 0 ? 1
+                : 0;
     }
 }
