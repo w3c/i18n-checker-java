@@ -48,7 +48,8 @@ public class CheckTest {
             headers1.put("Content-Type",
                     Arrays.asList("text/html; charset=utf-8"));
             instance1 = new Check(
-                    new DocumentResource(url1, body1, headers1));
+                    new ParsedDocument(
+                    new DocumentResource(url1, body1, headers1)));
 
             // Define instance2 (Check).
             URL url2 = new URL("http://www.chinaw3c.org/");
@@ -59,19 +60,13 @@ public class CheckTest {
                     Arrays.asList("text/html; charset=UTF-8"));
 
             instance2 = new Check(
-                    new DocumentResource(url2, body2, headers2));
+                    new ParsedDocument(
+                    new DocumentResource(url2, body2, headers2)));
 
         } catch (FileNotFoundException | MalformedURLException ex) {
             throw new RuntimeException(
                     "Test resources defined incorrectly.", ex);
         }
-    }
-
-    @Test
-    public void testGetDocumentResource() {
-        System.out.println("Testing: getDocumentResource");
-        assertNotNull(instance1.getDocumentResource());
-        assertNotNull(instance2.getDocumentResource());
     }
 
     @Test

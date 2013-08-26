@@ -12,9 +12,6 @@
  */
 package org.w3.i18n;
 
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,7 +22,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 /**
@@ -36,14 +32,11 @@ import org.jsoup.select.Elements;
  */
 class Check {
 
-    private final DocumentResource documentResource;
     private final ParsedDocument parsedDocument;
     private final List<Assertion> assertions;
 
-    public Check(DocumentResource documentResource) {
-        // Use the DocumentResource to prepare a ParsedDocument.
-        this.documentResource = documentResource;
-        this.parsedDocument = new ParsedDocument(documentResource);
+    public Check(ParsedDocument parsedDocument) {
+        this.parsedDocument = parsedDocument;
 
         // Perform checks.
         this.assertions = new ArrayList<>();
@@ -97,10 +90,6 @@ class Check {
         addAssertionRepMarkupTagsNoClass();
 
         Collections.sort(assertions);
-    }
-
-    public DocumentResource getDocumentResource() {
-        return documentResource;
     }
 
     public ParsedDocument getParsedDocument() {
@@ -251,7 +240,7 @@ class Check {
          * async-http-client doesn't use any by default.
          */
         Map<String, List<String>> headers =
-                documentResource.getHeaders();
+                parsedDocument.getDocumentResource().getHeaders();
         String[] desiredHeaders = {
             "Accept-Language",
             "Accept-Charset"
@@ -272,8 +261,8 @@ class Check {
     }
 
     private void addAssertionLangHttp() {
-        String contentLanguage =
-                documentResource.getHeader("Content-Language");
+        String contentLanguage = parsedDocument.getDocumentResource()
+                .getHeader("Content-Language");
         if (contentLanguage != null) {
             assertions.add(new Assertion(
                     "lang_http",

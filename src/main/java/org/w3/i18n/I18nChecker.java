@@ -31,12 +31,14 @@ public final class I18nChecker {
     }
 
     public static List<Assertion> check(URL url) throws IOException {
-        return new Check(DocumentResource.getRemote(url)).getAssertions();
+        return new Check(new ParsedDocument(DocumentResource.getRemote(url)))
+                .getAssertions();
     }
 
     public static List<Assertion> check(
             URL url, InputStream body, Map<String, List<String>> headers) {
-        return new Check(new DocumentResource(url, body, headers))
+        return new Check(
+                new ParsedDocument(new DocumentResource(url, body, headers)))
                 .getAssertions();
     }
 }

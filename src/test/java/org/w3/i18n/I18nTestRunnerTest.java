@@ -238,7 +238,7 @@ public class I18nTestRunnerTest {
                     report = report.replace("}", "");
                     String[] reportSplit = report.replace("}", "").split("\\{");
                     String reportId = reportSplit[0];
-                    
+
                     // MESSAGE levels are not compared.
                     Assertion.Level level = Assertion.Level.MESSAGE;
 
@@ -366,7 +366,7 @@ public class I18nTestRunnerTest {
         // Generate a list of assertions using the checker.
         // TODO: Should this the use API?
         List<Assertion> generatedAssertions =
-                new Check(documentResource).getAssertions();
+                new Check(new ParsedDocument(documentResource)).getAssertions();
 
         // Compare the lists of assertions.
         System.out.println("Expected assertions:");
