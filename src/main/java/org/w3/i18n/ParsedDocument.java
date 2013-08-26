@@ -66,6 +66,7 @@ class ParsedDocument {
     private final Set<String> allXmlLangAttributes;
     private final List<List<String>> allConflictingLangAttributes;
     private final Set<String> allNonNfcClassIdNames;
+    private final Set<String> allDirAttributes;
 
     public ParsedDocument(DocumentResource documentResource) {
         if (documentResource == null) {
@@ -276,6 +277,13 @@ class ParsedDocument {
                 allNonNfcClassIdNames.add(element.id());
             }
         }
+
+        this.allDirAttributes = new TreeSet<>();
+        for (Element element : document.getAllElements()) {
+            if (element.hasAttr("dir")) {
+                allDirAttributes.add(element.attr("dir"));
+            }
+        }
     }
 
     public Document getDocument() {
@@ -440,6 +448,10 @@ class ParsedDocument {
 
     public Set<String> getAllNonNfcClassIdNames() {
         return allNonNfcClassIdNames;
+    }
+
+    public Set<String> getAllDirAttributes() {
+        return allDirAttributes;
     }
 
     private static DoctypeClassification classifyDoctype(

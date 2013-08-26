@@ -983,16 +983,105 @@ class Check {
         }
     }
 
-    // rep_markup_bdo_no_dir (INFO)
+    // rep_markup_bdo_no_dir
+    // "ERROR: <bdo> tag without dir"
     private void addAssertionRepMarkupBdoNoDir() {
+        boolean bdoTagWithoutDir = false;
+        int i = 0;
+        Elements allBdoElements =
+                parsedDocument.getDocument().getElementsByTag("bdo");
+        while (bdoTagWithoutDir && i < allBdoElements.size()) {
+            if (!allBdoElements.get(i).hasAttr("dir")) {
+                bdoTagWithoutDir = true;
+            }
+            i++;
+        }
+        assertions.add(new Assertion(
+                "rep_markup_bdo_no_dir",
+                Assertion.Level.INFO,
+                "<code class='kw'>bdo</code> tags found with no"
+                + " <code class='kw'>dir</code> attribute",
+                "Add a <code class='kw'>dir</code> attribute to each <code"
+                + " class='kw'>bdo</code> tag.",
+                new ArrayList<String>()));
     }
 
     // rep_markup_dir_incorrect (ERROR)
-    // rep_markup_dir_incorrect (INFO)
+    // "ERROR: Incorrect values used for dir attribute"
     private void addAssertionRepMarkupDirIncorrect() {
+        if (!parsedDocument.getAllDirAttributes().isEmpty()) {
+            Set<String> incorrectDirs = new TreeSet<>();
+            for (String attribute : parsedDocument.getAllDirAttributes()) {
+                if (!attribute.equalsIgnoreCase("rtl")
+                        && !attribute.equalsIgnoreCase("ltr")
+                        || (!parsedDocument.isHtml5()
+                        && attribute.equalsIgnoreCase("auto"))) {
+                    incorrectDirs.add(attribute);
+                }
+            }
+            if (!incorrectDirs.isEmpty()) {
+                assertions.add(new Assertion(
+                        "rep_markup_dir_incorrect",
+                        Assertion.Level.ERROR,
+                        "Incorrect values used for <code class='kw'>dir</code>"
+                        + " attribute",
+                        "Correct the attribute values.",
+                        new ArrayList<>(incorrectDirs)));
+            }
+        }
     }
 
     // rep_markup_tags_no_class (INFO)
+    // "INFO: <b> tags found in source"
+    // "INFO: <i> tags found in source"
     private void addAssertionRepMarkupTagsNoClass() {
+        boolean bTagsNoClass = false;
+        boolean iTagsNoClass = false;
+        Elements allBElements =
+                parsedDocument.getDocument().getElementsByTag("b");
+        Elements allIElements =
+                parsedDocument.getDocument().getElementsByTag("i");
+        int i = 0;
+        while (!bTagsNoClass && i < allBElements.size()) {
+            if (!allBElements.get(i).hasAttr("class")) {
+                bTagsNoClass = true;
+            }
+            i++;
+        }
+        int j = 0;
+        while (!iTagsNoClass && j < allIElements.size()) {
+            if (!allIElements.get(j).hasAttr("class")) {
+                iTagsNoClass = true;
+            }
+            j++;
+        }
+        if (bTagsNoClass) {
+            assertions.add(new Assertion(
+                    "rep_markup_tags_no_class",
+                    Assertion.Level.INFO,
+                    "<code class='kw'>b</code> tags found with no class"
+                    + " attribute",
+                    "You should not use <code class='kw'>b</code> tags if"
+                    + " there is a more descriptive and relevant tag available."
+                    + " If you do use them, it is usually better to add class"
+                    + " attributes that describe the intended meaning of the"
+                    + " markup, so that you can distinguish one use from"
+                    + " another.",
+                    new ArrayList<String>()));
+        }
+        if (iTagsNoClass) {
+            assertions.add(new Assertion(
+                    "rep_markup_tags_no_class",
+                    Assertion.Level.INFO,
+                    "<code class='kw'>i</code> tags found with no class"
+                    + " attribute",
+                    "You should not use <code class='kw'>i</code> tags if"
+                    + " there is a more descriptive and relevant tag available."
+                    + " If you do use them, it is usually better to add class"
+                    + " attributes that describe the intended meaning of the"
+                    + " markup, so that you can distinguish one use from"
+                    + " another.",
+                    new ArrayList<String>()));
+        }
     }
 }
