@@ -204,34 +204,14 @@ class Check {
     }
 
     private void addAssertionClassID() {
-        // Aggregate all class names and IDs.
-        Set<String> idsAndClassNames = new TreeSet<>();
-        for (Element element : this.parsedDocument.getDocument()
-                .getElementsByAttribute("class")) {
-            idsAndClassNames.addAll(element.classNames());
-        }
-        for (Element element : this.parsedDocument.getDocument()
-                .getElementsByAttribute("id")) {
-            idsAndClassNames.add(element.id());
-        }
-
-        // Find problematic class names and IDs
-        List<String> problems = new ArrayList<>();
-        CharsetEncoder ce = Charset.forName("US-ASCII").newEncoder();
-        for (String str : idsAndClassNames) {
-            if ( // Non-ASCII ...
-                    !ce.canEncode(str)
-                    // or Non-NFC (Unicode normalisation)
-                    || !Normalizer.isNormalized(str, Normalizer.Form.NFC)) {
-                problems.add(str);
-            }
-        }
-
         // Finally ...
-        if (!problems.isEmpty()) {
+        if (!parsedDocument.getAllNonNfcClassIdNames().isEmpty()) {
             assertions.add(
                     new Assertion("class_id", Assertion.Level.INFO,
-                    "", "", problems));
+                    "",
+                    "",
+                    new ArrayList<>(
+                    parsedDocument.getAllNonNfcClassIdNames())));
         }
     }
 
@@ -988,7 +968,19 @@ class Check {
     }
 
     // rep_latin_non_nfc (WARNING)
+    // "WARNING: are there non-NFC class or id names?"
     private void addAssertionRepLatinNonNfc() {
+        if (!parsedDocument.getAllNonNfcClassIdNames().isEmpty()) {
+            assertions.add(new Assertion(
+                    "rep_latin_non_nfc",
+                    Assertion.Level.WARNING,
+                    "Class or id names found that are not in Unicode"
+                    + " Normalization&nbsp;Form&nbsp;C",
+                    "It is recommended to save all content as Unicode"
+                    + " Normalization Form C (NFC).",
+                    new ArrayList<>(
+                    parsedDocument.getAllNonNfcClassIdNames())));
+        }
     }
 
     // rep_markup_bdo_no_dir (INFO)

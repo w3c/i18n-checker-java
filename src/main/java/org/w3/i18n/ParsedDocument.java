@@ -14,6 +14,8 @@ package org.w3.i18n;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -63,6 +65,7 @@ class ParsedDocument {
     private final Set<String> allLangAttributes;
     private final Set<String> allXmlLangAttributes;
     private final List<List<String>> allConflictingLangAttributes;
+    private final Set<String> allNonNfcClassIdNames;
 
     public ParsedDocument(DocumentResource documentResource) {
         if (documentResource == null) {
@@ -254,6 +257,25 @@ class ParsedDocument {
         for (Element element : document.getElementsByAttribute("xml:lang")) {
             allXmlLangAttributes.add(element.attr("xml:lang"));
         }
+
+        this.allNonNfcClassIdNames = new TreeSet<>();
+        CharsetEncoder ce = Charset.forName("US-ASCII").newEncoder();
+        for (Element element : document.getAllElements()) {
+            for (String className : element.classNames()) {
+                if (!ce.canEncode(className)
+                        || !Normalizer.isNormalized(
+                        className, Normalizer.Form.NFC)) {
+                    allNonNfcClassIdNames.add(className);
+                }
+            }
+            if (// Non-ASCII ...
+                    !ce.canEncode(element.id())
+                    || // or Non-NFC (Unicode normalisation)
+                    !Normalizer.isNormalized(
+                    element.id(), Normalizer.Form.NFC)) {
+                allNonNfcClassIdNames.add(element.id());
+            }
+        }
     }
 
     public Document getDocument() {
@@ -414,6 +436,10 @@ class ParsedDocument {
 
     public List<List<String>> getAllConflictingLangAttributes() {
         return allConflictingLangAttributes;
+    }
+
+    public Set<String> getAllNonNfcClassIdNames() {
+        return allNonNfcClassIdNames;
     }
 
     private static DoctypeClassification classifyDoctype(
