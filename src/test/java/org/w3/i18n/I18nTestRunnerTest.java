@@ -238,7 +238,9 @@ public class I18nTestRunnerTest {
                     report = report.replace("}", "");
                     String[] reportSplit = report.replace("}", "").split("\\{");
                     String reportId = reportSplit[0];
-                    Assertion.Level level = Assertion.Level.WARNING;
+                    
+                    // MESSAGE levels are not compared.
+                    Assertion.Level level = Assertion.Level.MESSAGE;
 
                     /* Look for additional details for each '_report[]'
                      * (e.g. "{severity:warning,tags:2}"). */
@@ -379,8 +381,9 @@ public class I18nTestRunnerTest {
                 // Currently compares only by id and level.
                 if (assertion.getId().equals(
                         generatedAssertions.get(i).getId())
-                        && assertion.getLevel().equals(
-                        generatedAssertions.get(i).getLevel())) {
+                        && (assertion.getLevel() == Assertion.Level.MESSAGE
+                        || assertion.getLevel().equals(
+                        generatedAssertions.get(i).getLevel()))) {
                     found = true;
                     expectedAssertionsFound++;
                 }
