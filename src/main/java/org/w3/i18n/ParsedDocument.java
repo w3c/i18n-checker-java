@@ -40,8 +40,8 @@ import org.jsoup.select.Elements;
 class ParsedDocument {
 
     private final DocumentResource documentResource;
-    // From the html parser:
     private final Document document;
+    private final String documentBody;
     private final String doctypeDeclaration;
     private final DoctypeClassification doctypeClassification;
     private final ByteOrderMark byteOrderMark;
@@ -49,16 +49,20 @@ class ParsedDocument {
     private final boolean utf16;
     private final String xmlDeclaration;
     private final String openingHtmlTag;
+    private final String openingHtmlTagLang;
+    private final String openingHtmlTagXmlLang;
     private final String charsetXmlDeclaration;
     private final Map<String, List<String>> charsetMetaDeclarations;
     private final String contentType;
     private final boolean servedAsXml;
     private final String charsetHttp;
-    // TODO: remove this string:
-    private final String documentBody;
+    private final String langMeta;
     private final Set<String> allCharsetDeclarations;
     private final Set<String> nonUtf8CharsetDeclarations;
     private final Set<String> inDocCharsetDeclarations;
+    private final Set<String> allLangAttributes;
+    private final Set<String> allXmlLangAttributes;
+    private final List<List<String>> allConflictingLangAttributes;
 
     public ParsedDocument(DocumentResource documentResource) {
         if (documentResource == null) {
@@ -124,11 +128,18 @@ class ParsedDocument {
                 ? xmlDeclarationMatcher.group() : null;
 
         // Find the opening HTML tag; otherwise declare null.
-        // (TODO: Find a way to get the parser to do this.)
+        // Note: the HTML parser can't return the orginal tag as it was sent.
         Matcher openingHtmlTagMatcher = Pattern.compile("<html [^>]*>")
                 .matcher(documentBody);
         this.openingHtmlTag = openingHtmlTagMatcher.find()
                 ? openingHtmlTagMatcher.group() : null;
+
+        Element htmlTag = document.getElementsByTag("html").first();
+        this.openingHtmlTagLang = htmlTag.hasAttr("lang")
+                ? htmlTag.attr("lang") : null;
+        this.openingHtmlTagXmlLang = htmlTag.hasAttr("xml:lang")
+                ? htmlTag.attr("xml:lang") : null;
+
 
         /* Find the character set declaration in the XML declaration; otherwise
          * declare null. */
@@ -215,6 +226,33 @@ class ParsedDocument {
             if (!charsetDeclaration.equals("utf-8")) {
                 nonUtf8CharsetDeclarations.add(charsetDeclaration);
             }
+        }
+
+        String langMetaS = null;
+        int j = 0;
+        while (langMetaS == null && j < metaTagElements.size()) {
+            if (metaTagElements.get(j).attr("http-equiv")
+                    .equalsIgnoreCase("Content-Language")) {
+                langMetaS = metaTagElements.get(j).attr("content");
+            }
+            j++;
+        }
+        this.langMeta = langMetaS;
+
+        this.allConflictingLangAttributes = new ArrayList<>();
+        this.allLangAttributes = new TreeSet<>();
+        for (Element element : document.getElementsByAttribute("lang")) {
+            allLangAttributes.add(element.attr("lang"));
+            if (element.hasAttr("xml:lang")) {
+                if (!element.attr("xml:lang").equals(element.attr("lang"))) {
+                    this.allConflictingLangAttributes.add(Arrays.asList(
+                            element.attr("lang"), element.attr("xml:lang")));
+                }
+            }
+        }
+        this.allXmlLangAttributes = new TreeSet<>();
+        for (Element element : document.getElementsByAttribute("xml:lang")) {
+            allXmlLangAttributes.add(element.attr("xml:lang"));
         }
     }
 
@@ -314,6 +352,14 @@ class ParsedDocument {
         return openingHtmlTag;
     }
 
+    public String getOpeningHtmlTagLang() {
+        return openingHtmlTagLang;
+    }
+
+    public String getOpeningHtmlTagXmlLang() {
+        return openingHtmlTagXmlLang;
+    }
+
     public String getCharsetXmlDeclaration() {
         return charsetXmlDeclaration;
     }
@@ -324,6 +370,10 @@ class ParsedDocument {
 
     public String getCharsetHttp() {
         return charsetHttp;
+    }
+
+    public String getLangMeta() {
+        return langMeta;
     }
 
     public String getContentType() {
@@ -352,6 +402,18 @@ class ParsedDocument {
 
     public Set<String> getInDocCharsetDeclarations() {
         return inDocCharsetDeclarations;
+    }
+
+    public Set<String> getAllLangAttributes() {
+        return allLangAttributes;
+    }
+
+    public Set<String> getAllXmlLangAttributes() {
+        return allXmlLangAttributes;
+    }
+
+    public List<List<String>> getAllConflictingLangAttributes() {
+        return allConflictingLangAttributes;
     }
 
     private static DoctypeClassification classifyDoctype(

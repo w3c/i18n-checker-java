@@ -25,7 +25,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -785,39 +784,207 @@ class Check {
     }
 
     // rep_lang_conflict (ERROR)
+    // "ERROR: A lang attribute value did not match an xml:lang value when ..."
     private void addAssertionRepLangConflict() {
+        if (!parsedDocument.getAllConflictingLangAttributes().isEmpty()) {
+            ArrayList<String> contexts = new ArrayList<>();
+            for (List<String> conflict
+                    : parsedDocument.getAllConflictingLangAttributes()) {
+                contexts.add(conflict.toString());
+            }
+            assertions.add(new Assertion(
+                    "rep_lang_conflict",
+                    Assertion.Level.ERROR,
+                    "A <code class='kw'>lang</code> attribute value did not"
+                    + " match an <code class='kw'>xml:lang</code> value when"
+                    + " they appeared together on the same tag.",
+                    "Change one of the values in each tag by editing the"
+                    + " markup",
+                    contexts));
+        }
     }
 
     // rep_lang_content_lang_meta (ERROR)
     // rep_lang_content_lang_meta (WARNING)
+    // "LANG REPORT: Content-Language meta element"
     private void addAssertionRepLangContentLangMeta() {
+        if (parsedDocument.getLangMeta() != null) {
+            assertions.add(new Assertion(
+                    "rep_lang_content_lang_meta",
+                    parsedDocument.isHtml5()
+                    ? Assertion.Level.ERROR : Assertion.Level.WARNING,
+                    "Content-Language <code class='kw'>meta</code> element used"
+                    + " to set the default document language",
+                    "Remove the Content-Language meta element, and ensure that"
+                    + " you have used an attribute on the <code"
+                    + " class='kw'>html</code> tag to specify the default"
+                    + " language of the page.",
+                    Arrays.asList(parsedDocument.getLangMeta())));
+        }
     }
 
     // rep_lang_html_no_effective_lang (WARNING)
+    // "WARNING: The html tag has no effective language declaration"
     private void addAssertionRepLangHtmlNoEffectiveLang() {
+        if (parsedDocument.isServedAsXml()
+                && parsedDocument.getOpeningHtmlTagLang() != null
+                && parsedDocument.getOpeningHtmlTagXmlLang() == null) {
+            assertions.add(new Assertion(
+                    "rep_lang_html_no_effective_lang",
+                    Assertion.Level.WARNING,
+                    "The language declaration in the <code"
+                    + " class='kw'>html</code> tag will have no effect ",
+                    "Since this page is served as XML, use the <code"
+                    + " class='kw'>xml:lang</code> attribute instead of a"
+                    + " <code class='kw'>lang</code> attribute. If there is a"
+                    + " chance that this page will also be served as <code"
+                    + " class='kw'>text/html</code> in some circumstances, use"
+                    + " both.",
+                    Arrays.asList(parsedDocument.getOpeningHtmlTag())));
+        } else if (parsedDocument.getOpeningHtmlTagLang() == null
+                && parsedDocument.getOpeningHtmlTagXmlLang() != null) {
+            String description = parsedDocument.isHtml()
+                    || parsedDocument.isHtml5()
+                    || (parsedDocument.isXhtml10()
+                    && !parsedDocument.isServedAsXml())
+                    ? "Since this page is served as HTML, use the <code"
+                    + " class='kw'>lang</code> attribute. If there is a chance"
+                    + " that the same page will also be processed by an XML"
+                    + " parser, use both the <code class='kw'>lang</code>"
+                    + " attribute and the <code class='kw'>xml:lang</code>"
+                    + " attribute."
+                    : "Since this page is served as HTML, use the <code"
+                    + " class='kw'>lang</code> attribute.";
+            assertions.add(new Assertion(
+                    "rep_lang_html_no_effective_lang",
+                    Assertion.Level.WARNING,
+                    "The language declaration in the <code"
+                    + " class='kw'>html</code> tag will have no effect ",
+                    description,
+                    Arrays.asList(parsedDocument.getOpeningHtmlTag())));
+        }
     }
 
     // rep_lang_malformed_attr (ERROR)
+    // "WARNING: A language attribute value was incorrectly formed."
     private void addAssertionRepLangMalformedAttr() {
+        Set<String> malformedAttrs = new TreeSet<>();
+        for (String atttr : parsedDocument.getAllLangAttributes()) {
+            if (!atttr.matches("[a-zA-Z0-9]*[^a-zA-Z0-9\\-]+[a-zA-Z0-9]*")) {
+                malformedAttrs.add(atttr);
+            }
+        }
+        for (String atttr : parsedDocument.getAllXmlLangAttributes()) {
+            if (!atttr.matches("[a-zA-Z0-9]*[^a-zA-Z0-9\\-]+[a-zA-Z0-9]*")) {
+                malformedAttrs.add(atttr);
+            }
+        }
+        if (!malformedAttrs.isEmpty()) {
+            assertions.add(new Assertion(
+                    "rep_lang_malformed_attr",
+                    Assertion.Level.ERROR,
+                    "A language attribute value was incorrectly formed",
+                    "Change the attribute values to conform to BCP47 syntax"
+                    + " rules.",
+                    new ArrayList<>(malformedAttrs)));
+        }
     }
 
     // rep_lang_missing_html_attr (ERROR)
     // rep_lang_missing_html_attr (WARNING)
+    // "WARNING: A tag uses an xml:lang attribute without an associated ..."
     private void addAssertionRepLangMissingHtmlAttr() {
+        if ((parsedDocument.isXhtml10() & !parsedDocument.isServedAsXml())
+                || parsedDocument.isHtml5()) {
+            if (!parsedDocument.getAllLangAttributes()
+                    .containsAll(parsedDocument.getAllXmlLangAttributes())) {
+                assertions.add(new Assertion(
+                        "rep_lang_missing_html_attr",
+                        parsedDocument.isHtml5()
+                        ? Assertion.Level.ERROR : Assertion.Level.WARNING,
+                        "A tag uses an <code class='kw'>xml:lang</code>"
+                        + " attribute without an associated <code"
+                        + " class='kw'>lang</code> attribute",
+                        "Add a <code class='kw'>lang</code> attribute to each"
+                        + " of the above tags, with the same value as the <code"
+                        + " class='kw'>xml:lang</code> attribute.",
+                        new ArrayList<String>()));
+            }
+        }
     }
 
     // rep_lang_missing_xml_attr (ERROR)
     // rep_lang_missing_xml_attr (WARNING)
+    // "WARNING: A tag uses a lang attribute without an associated xml:lang ..."
     private void addAssertionRepLangMissingXmlAttr() {
+        if (parsedDocument.isXhtml10() || parsedDocument.isXhtml11()) {
+            if (!parsedDocument.getAllXmlLangAttributes()
+                    .containsAll(parsedDocument.getAllLangAttributes())) {
+                assertions.add(new Assertion(
+                        "rep_lang_missing_xml_attr",
+                        parsedDocument.isServedAsXml()
+                        ? Assertion.Level.ERROR : Assertion.Level.WARNING,
+                        "A tag uses a <code class='kw'>lang</code> attribute"
+                        + " without an associated <code"
+                        + " class='kw'>xml:lang</code> attribute",
+                        "Add an <code class='kw'>xml:lang</code> attribute to"
+                        + " each of the above tags, with the same value as the"
+                        + " <code class='kw'>lang</code> attribute.",
+                        new ArrayList<String>()));
+            }
+        }
     }
 
-    // rep_lang_no_lang_attr (INFO)
     // rep_lang_no_lang_attr (WARNING)
+    // "WARNING: The html tag has no language attribute"
     private void addAssertionRepLangNoLangAttr() {
+        if (parsedDocument.getOpeningHtmlTagLang() == null
+                && parsedDocument.getOpeningHtmlTagXmlLang() == null) {
+            String description =
+                    parsedDocument.isHtml() || parsedDocument.isHtml5()
+                    ? "Add a <code class='kw'>lang</code> attribute that"
+                    + " indicates the default language of your page. Example:"
+                    + " <code>lang='de'</code>"
+                    : parsedDocument.isXhtml10()
+                    && !parsedDocument.isServedAsXml()
+                    ? "Since this is an XHTML page served as HTML, add both a"
+                    + " <code class='kw'>lang</code> attribute and an <code"
+                    + " class='kw'>xml:lang</code> attribute to the html tag to"
+                    + " indicate the default language of your page.  The <code"
+                    + " class='kw'>lang</code> attribute is understood by HTML"
+                    + " processors, but not by XML processors, and vice versa."
+                    + " Example: <code>lang=&quot;de&quot;"
+                    + " xml:lang=&quot;de&quot;</code>"
+                    : "Add an <code class='kw'>xml:lang</code> attribute that"
+                    + " indicates the default language of your page. Example:"
+                    + " <code>xml:lang='de'</code>";
+            assertions.add(new Assertion(
+                    "rep_lang_no_lang_attr",
+                    Assertion.Level.WARNING,
+                    "The <code class='kw'>html</code> tag has no"
+                    + " language attribute",
+                    description,
+                    Arrays.asList(
+                    parsedDocument.getOpeningHtmlTag())));
+
+        }
     }
 
     // rep_lang_xml_attr_in_html (ERROR)
+    // "WARNING: This HTML file contains xml:lang attributes"
     private void addAssertionRepLangXmlAttrInHtml() {
+        if (parsedDocument.isHtml()
+                && !parsedDocument.getAllXmlLangAttributes().isEmpty()) {
+            assertions.add(new Assertion(
+                    "rep_lang_xml_attr_in_html",
+                    Assertion.Level.ERROR,
+                    "This HTML file contains <code class='kw'>xml:lang</code>"
+                    + " attributes",
+                    "Remove the <code class='kw'>xml:lang</code> attributes"
+                    + " from the markup, replacing them, where appropriate,"
+                    + " with <code class='kw'>lang</code> attributes.",
+                    new ArrayList<String>()));
+        }
     }
 
     // rep_latin_non_nfc (WARNING)
