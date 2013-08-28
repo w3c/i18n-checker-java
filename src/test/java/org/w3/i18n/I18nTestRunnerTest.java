@@ -166,7 +166,22 @@ public class I18nTestRunnerTest {
             throws TestsFileParsingException {
         List<I18nTest> i18nTests = new ArrayList<>();
 
-        // Retrieve details from the properties files.
+        /* Possible properties for a test:
+         * (name)
+         * 'id'
+         * 'url'
+         * 'test_for'
+         * 'info_charset'
+         * 'info_lang'
+         * 'info_dir'
+         * 'info_classId'
+         * 'info_headers'
+         * 'reports'
+         * 'warning'
+         * 'applicableOnlyTo'
+         */
+
+        // Retrieve required details from the properties files.
         String propertyDescription = configuration.containsKey(prefix)
                 ? configuration.getString(prefix).replace("\"", "")
                 : null;
@@ -361,15 +376,26 @@ public class I18nTestRunnerTest {
     private static boolean run(
             I18nTest i18nTest, DocumentResource documentResource) {
         boolean passed;
-        System.out.println("\nRunning test: " + i18nTest + ".");
+        System.out.println("\nRunning test: '" + i18nTest.getName() + "' ["
+                +  i18nTest.getUrl() + "].");
 
         // Generate a list of assertions using the checker.
         // TODO: Should this the use API?
-        List<Assertion> generatedAssertions =
-                new Check(new ParsedDocument(documentResource)).getAssertions();
+        List<Assertion> a = new Check(new ParsedDocument(documentResource))
+                .getAssertions();
+        Collections.sort(a);
+        List<Assertion> generatedRepAssertions = new ArrayList<>();
+        List<Assertion> generatedOtherAssertions = new ArrayList<>();
+        for (Assertion assertion : a) {
+            if (assertion.getId().matches("rep_.*")) {
+                generatedRepAssertions.add(assertion);
+            } else {
+                generatedOtherAssertions.add(assertion);
+            }
+        }
 
         // Compare the lists of assertions.
-        System.out.println("Expected assertions:");
+        System.out.print("Expected assertions: ");
         StringBuilder sb = new StringBuilder("[");
         int expectedAssertionsFound = 0;
         for (Assertion assertion : i18nTest.getExpectedAssertions()) {
@@ -377,13 +403,13 @@ public class I18nTestRunnerTest {
                     .append(" (").append(assertion.getLevel()).append(") ");
             boolean found = false;
             int i = 0;
-            while (found == false && i < generatedAssertions.size()) {
+            while (found == false && i < generatedRepAssertions.size()) {
                 // Currently compares only by id and level.
                 if (assertion.getId().equals(
-                        generatedAssertions.get(i).getId())
+                        generatedRepAssertions.get(i).getId())
                         && (assertion.getLevel() == Assertion.Level.MESSAGE
                         || assertion.getLevel().equals(
-                        generatedAssertions.get(i).getLevel()))) {
+                        generatedRepAssertions.get(i).getLevel()))) {
                     found = true;
                     expectedAssertionsFound++;
                 }
@@ -397,8 +423,10 @@ public class I18nTestRunnerTest {
             sb.append("]");
         }
         System.out.println(sb);
-        System.out.println("Generated assertions:");
-        print(generatedAssertions);
+        System.out.print("Generated 'rep' assertions: ");
+        print(generatedRepAssertions);
+        System.out.print("Other generated assertions: ");
+        print(generatedOtherAssertions);
 
         // Determine result.
         passed = expectedAssertionsFound
@@ -406,7 +434,7 @@ public class I18nTestRunnerTest {
         System.out.println("Result: " + (passed ? "Passed" : "FAILED")
                 + " (found " + expectedAssertionsFound + " of "
                 + i18nTest.getExpectedAssertions().size() + " expected, "
-                + generatedAssertions.size() + " generated.)");
+                + a.size() + " generated.)");
         return passed;
     }
 
