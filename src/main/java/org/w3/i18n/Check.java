@@ -854,14 +854,13 @@ class Check {
     // rep_lang_malformed_attr (ERROR)
     // "WARNING: A language attribute value was incorrectly formed."
     private void addAssertionRepLangMalformedAttr() {
+        Set<String> attrs = new TreeSet<>();
+        attrs.addAll(parsedDocument.getAllLangAttributes());
+        attrs.addAll(parsedDocument.getAllXmlLangAttributes());
         Set<String> malformedAttrs = new TreeSet<>();
-        for (String atttr : parsedDocument.getAllLangAttributes()) {
-            if (!atttr.matches("[a-zA-Z0-9]*[^a-zA-Z0-9\\-]+[a-zA-Z0-9]*")) {
-                malformedAttrs.add(atttr);
-            }
-        }
-        for (String atttr : parsedDocument.getAllXmlLangAttributes()) {
-            if (!atttr.matches("[a-zA-Z0-9]*[^a-zA-Z0-9\\-]+[a-zA-Z0-9]*")) {
+        for (String atttr : attrs) {
+            // TODO Review this regexp. RFC 5646, RFC 4647
+            if (!atttr.matches("[a-zA-Z0-9]{1,8}(-[a-zA-Z0-9]{1,8})*")) {
                 malformedAttrs.add(atttr);
             }
         }
