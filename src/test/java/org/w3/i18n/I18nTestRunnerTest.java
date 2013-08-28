@@ -478,8 +478,8 @@ public class I18nTestRunnerTest {
         for (Assertion assertion : assertions) {
             sb.append("[")
                     .append(assertion.getId()).append(", ")
-                    .append(assertion.getLevel()).append(", [")
-                    .append(assertion.getContexts()).append("]], ");
+                    .append(assertion.getLevel()).append(", ")
+                    .append(assertion.getContexts()).append("], ");
         }
         if (!assertions.isEmpty()) {
             sb.replace(sb.length() - 2, sb.length() - 1, "]");
