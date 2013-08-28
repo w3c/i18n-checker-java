@@ -41,6 +41,7 @@ class Check {
         // Perform checks.
         this.assertions = new ArrayList<>();
 
+        // Add information assertions.
         addAssertionDtd();
         addAssertionCharsetBom();
         addAssertionCharsetXmlDeclaration();
@@ -53,9 +54,9 @@ class Check {
         addAssertionCharsetHttp();
         addAssertionLangHttp();
         addAssertionRequestHeaders();
-//        addAssertionCharsetReports();
 
-
+        // Add report assertions.
+        // (Charset.)
         addAssertionRepCharset1024Limit();
         addAssertionRepCharsetBogusUtf16();
         addAssertionRepCharsetBomFound();
@@ -76,6 +77,7 @@ class Check {
         addAssertionRepCharsetUtf16Meta();
         addAssertionRepCharsetUtf16lebe();
         addAssertionRepCharsetXmlDeclUsed();
+        // (Lang.)
         addAssertionRepLangConflict();
         addAssertionRepLangContentLangMeta();
         addAssertionRepLangHtmlNoEffectiveLang();
@@ -84,7 +86,9 @@ class Check {
         addAssertionRepLangMissingXmlAttr();
         addAssertionRepLangNoLangAttr();
         addAssertionRepLangXmlAttrInHtml();
+        // (NonLatin.)
         addAssertionRepLatinNonNfc();
+        // (Markup.)
         addAssertionRepMarkupBdoNoDir();
         addAssertionRepMarkupDirIncorrect();
         addAssertionRepMarkupTagsNoClass();
@@ -101,12 +105,16 @@ class Check {
     }
 
     private void addAssertionDtd() {
-        assertions.add(new Assertion(
-                "dtd",
-                Assertion.Level.INFO,
-                "",
-                parsedDocument.getDoctypeDescription(),
-                Arrays.asList(parsedDocument.getDoctypeDeclaration())));
+        if (parsedDocument.getDoctypeDeclaration() != null) {
+            assertions.add(new Assertion(
+                    "dtd",
+                    Assertion.Level.INFO,
+                    "Document Type Definition (DTD/Doctype)",
+                    "",
+                    Arrays.asList(
+                    parsedDocument.getDoctypeDescription(),
+                    parsedDocument.getDoctypeDeclaration())));
+        }
     }
 
     private void addAssertionCharsetBom() {
@@ -123,81 +131,87 @@ class Check {
     }
 
     private void addAssertionCharsetXmlDeclaration() {
-        assertions.add(new Assertion(
-                "charset_xml", Assertion.Level.INFO, "", "",
-                Arrays.asList(parsedDocument.getCharsetXmlDeclaration(),
-                parsedDocument.getXmlDeclaration())));
+        if (parsedDocument.getCharsetXmlDeclaration() != null) {
+            assertions.add(new Assertion(
+                    "charset_xml",
+                    Assertion.Level.INFO,
+                    "Charset declaraction in <code>xml</code> tag",
+                    "",
+                    Arrays.asList(
+                    parsedDocument.getCharsetXmlDeclaration(),
+                    parsedDocument.getXmlDeclaration())));
+        }
     }
 
     private void addAssertionCharsetMeta() {
-        ArrayList<String> contexts = new ArrayList<>();
-        for (Map.Entry<String, List<String>> entry
-                : parsedDocument.getCharsetMetaDeclarations().entrySet()) {
-            contexts.add(entry.getKey());
-            contexts.addAll(entry.getValue());
+        if (!parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
+            ArrayList<String> contexts = new ArrayList<>();
+            for (Map.Entry<String, List<String>> entry
+                    : parsedDocument.getCharsetMetaDeclarations().entrySet()) {
+                contexts.add(entry.getKey());
+                contexts.addAll(entry.getValue());
+            }
+            assertions.add(new Assertion(
+                    "charset_meta",
+                    Assertion.Level.INFO,
+                    "Charset declaration in a <code>meta</code> tag",
+                    "",
+                    contexts));
         }
-        assertions.add(new Assertion(
-                "charset_meta",
-                Assertion.Level.INFO,
-                "",
-                "",
-                contexts));
     }
 
     private void addAssertionLangAttr() {
         // TODO ignores either xml:lang or lang, whichever is first
-        String htmlTag = parsedDocument.getOpeningHtmlTag();
-        if (htmlTag != null) {
-            Matcher langM = Pattern.compile("lang=\"[^\"]*\"").matcher(htmlTag);
-            String langAttr = langM.find()
-                    ? langM.group().substring(6, langM.group().length() - 1)
-                    : null;
+        Set<String> langs = new TreeSet<>();
+        if (parsedDocument.getOpeningHtmlTagLang() != null) {
+            langs.add(parsedDocument.getOpeningHtmlTagLang());
+        }
+        if (parsedDocument.getOpeningHtmlTagXmlLang() != null) {
+            langs.add(parsedDocument.getOpeningHtmlTagXmlLang());
+        }
+        if (!langs.isEmpty()) {
+            List<String> contexts = new ArrayList<>(langs);
+            contexts.add(parsedDocument.getOpeningHtmlTag());
             assertions.add(new Assertion(
-                    "lang_attr_lang", Assertion.Level.INFO, "", "",
-                    Arrays.asList(langAttr, htmlTag)));
+                    "lang_attr_lang",
+                    Assertion.Level.INFO,
+                    "Language code declaration in the opening <code>html</code>"
+                    + " tag",
+                    "",
+                    contexts));
         }
     }
 
     private void addAssertionLangMeta() {
-        if (!parsedDocument.getDocument()
-                .getElementsByAttributeValue("http-equiv", "Content-Language")
-                .isEmpty()) {
-            String metaTag = parsedDocument.getDocument()
-                    .getElementsByAttributeValue(
-                    "http-equiv", "Content-Language").first().outerHtml();
-            Matcher contentM =
-                    Pattern.compile("content=\"[^\"]*\"").matcher(metaTag);
-            String content = contentM.find()
-                    ? contentM.group()
-                    .substring(9, contentM.group().length() - 1) : null;
+        if (parsedDocument.getLangMeta() != null) {
             assertions.add(new Assertion(
-                    "lang_meta", Assertion.Level.INFO, "", "",
-                    Arrays.asList(content, metaTag)));
-        } else {
-            assertions.add(new Assertion("lang_meta", Assertion.Level.INFO,
-                    "", "", new ArrayList<String>()));
+                    "lang_meta",
+                    Assertion.Level.INFO,
+                    "Language code declaration in <code>meta</code> tag",
+                    "",
+                    Arrays.asList(parsedDocument.getLangMeta())));
         }
     }
 
     private void addAssertionDirHtml() {
-        String htmlOpeningTag = parsedDocument.getOpeningHtmlTag();
-        if (htmlOpeningTag != null) {
-            Matcher dirAttrM =
-                    Pattern.compile("dir\"[^\"]*\"").matcher(htmlOpeningTag);
-            String dirAttr = dirAttrM.find() ? dirAttrM.group() : null;
+        if (parsedDocument.getDefaultDir() != null) {
             assertions.add(new Assertion(
-                    "dir_default", Assertion.Level.INFO, "", "",
-                    dirAttr == null ? new ArrayList<String>()
-                    : Arrays.asList(dirAttr, htmlOpeningTag)));
+                    "dir_default",
+                    Assertion.Level.INFO,
+                    "Default text-direction declaration (in the opening"
+                    + " <code>html</code> tag)",
+                    "",
+                    Arrays.asList(
+                    parsedDocument.getDefaultDir(),
+                    parsedDocument.getOpeningHtmlTag())));
         }
     }
 
     private void addAssertionClassID() {
-        // Finally ...
         if (!parsedDocument.getAllNonNfcClassIdNames().isEmpty()) {
-            assertions.add(
-                    new Assertion("class_id", Assertion.Level.INFO,
-                    "",
+            assertions.add(new Assertion(
+                    "class_id", Assertion.Level.INFO,
+                    "Non ascii or non NFC class or id names",
                     "",
                     new ArrayList<>(
                     parsedDocument.getAllNonNfcClassIdNames())));
@@ -205,32 +219,28 @@ class Check {
     }
 
     private void addAssertionMimetype() {
-        if (parsedDocument.isServedAsXml()) {
+        if (parsedDocument.getContentType() != null) {
             assertions.add(new Assertion(
-                    "message_xhtml5_partial_support",
-                    Assertion.Level.MESSAGE,
+                    "mimetype",
+                    Assertion.Level.INFO,
+                    "MIME type (HTTP Content-Type header)",
                     "",
-                    // TODO: Update description from previous project.
-                    "This is an xhtml5 document. xhtml5 specifics are not yet"
-                    + " integrated in the checker so you may have inacurate"
-                    + " results.",
-                    new ArrayList<String>()));
+                    Arrays.asList(parsedDocument.getContentType())));
         }
-        assertions.add(new Assertion(
-                "mimetype",
-                Assertion.Level.INFO,
-                "",
-                parsedDocument.getContentType(),
-                new ArrayList<String>()));
     }
 
     private void addAssertionCharsetHttp() {
-        String context = "Content-Type: "
-                + parsedDocument.getContentType();
-        assertions.add(new Assertion(
-                "charset_http", Assertion.Level.INFO, "", "",
-                Arrays.asList(parsedDocument.getCharsetHttp(), context)));
-
+        if (parsedDocument.getCharsetHttp() != null) {
+            assertions.add(new Assertion(
+                    "charset_http",
+                    Assertion.Level.INFO,
+                    "Charset declaration in HTTP response header 'Content-Type'"
+                    + " header",
+                    "",
+                    Arrays.asList(
+                    parsedDocument.getCharsetHttp(),
+                    "Content-Type: " + parsedDocument.getContentType())));
+        }
     }
 
     private void addAssertionRequestHeaders() {
@@ -256,21 +266,28 @@ class Check {
                 result.add(sb.toString());
             }
         }
-        assertions.add(new Assertion(
-                "request_headers", Assertion.Level.INFO, "", "", result));
+        if (!result.isEmpty()) {
+            assertions.add(new Assertion(
+                    "request_headers",
+                    Assertion.Level.INFO,
+                    "HTTP request headers",
+                    "",
+                    result));
+        }
     }
 
     private void addAssertionLangHttp() {
-        String contentLanguage = parsedDocument.getDocumentResource()
-                .getHeader("Content-Language");
-        if (contentLanguage != null) {
+        if (parsedDocument.getContentLanguage() != null) {
             assertions.add(new Assertion(
                     "lang_http",
                     Assertion.Level.INFO,
+                    "Language code declaration in HTTP response header"
+                    + " 'Content-Language'",
                     "",
-                    "",
-                    Arrays.asList(contentLanguage,
-                    "Content-Language: " + contentLanguage)));
+                    Arrays.asList(
+                    parsedDocument.getContentLanguage(),
+                    "Content-Language: "
+                    + parsedDocument.getContentLanguage())));
         }
     }
 

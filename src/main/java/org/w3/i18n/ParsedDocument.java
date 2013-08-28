@@ -56,6 +56,7 @@ class ParsedDocument {
     private final String charsetXmlDeclaration;
     private final Map<String, List<String>> charsetMetaDeclarations;
     private final String contentType;
+    private final String contentLanguage;
     private final boolean servedAsXml;
     private final String charsetHttp;
     private final String langMeta;
@@ -67,6 +68,7 @@ class ParsedDocument {
     private final List<List<String>> allConflictingLangAttributes;
     private final Set<String> allNonNfcClassIdNames;
     private final Set<String> allDirAttributes;
+    private final String defaultDir;
 
     public ParsedDocument(DocumentResource documentResource) {
         if (documentResource == null) {
@@ -143,6 +145,8 @@ class ParsedDocument {
                 ? htmlTag.attr("lang") : null;
         this.openingHtmlTagXmlLang = htmlTag.hasAttr("xml:lang")
                 ? htmlTag.attr("xml:lang") : null;
+        this.defaultDir = htmlTag.hasAttr("dir")
+                ? htmlTag.attr("dir") : null;
 
 
         /* Find the character set declaration in the XML declaration; otherwise
@@ -203,6 +207,8 @@ class ParsedDocument {
             this.charsetHttp = null;
             this.servedAsXml = false;
         }
+
+        this.contentLanguage = documentResource.getHeader("Content-Language");
 
         // Aggregate charset declarations.
         this.allCharsetDeclarations = new TreeSet<>();
@@ -390,6 +396,10 @@ class ParsedDocument {
         return openingHtmlTagXmlLang;
     }
 
+    public String getDefaultDir() {
+        return defaultDir;
+    }
+
     public String getCharsetXmlDeclaration() {
         return charsetXmlDeclaration;
     }
@@ -408,6 +418,10 @@ class ParsedDocument {
 
     public String getContentType() {
         return contentType;
+    }
+
+    public String getContentLanguage() {
+        return contentLanguage;
     }
 
     public DocumentResource getDocumentResource() {
