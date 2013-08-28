@@ -827,7 +827,8 @@ class Check {
                     + " class='kw'>text/html</code> in some circumstances, use"
                     + " both.",
                     Arrays.asList(parsedDocument.getOpeningHtmlTag())));
-        } else if (parsedDocument.getOpeningHtmlTagLang() == null
+        } else if (!parsedDocument.isServedAsXml()
+                && parsedDocument.getOpeningHtmlTagLang() == null
                 && parsedDocument.getOpeningHtmlTagXmlLang() != null) {
             String description = parsedDocument.isHtml()
                     || parsedDocument.isHtml5()
