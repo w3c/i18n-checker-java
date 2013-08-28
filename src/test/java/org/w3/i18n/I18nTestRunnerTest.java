@@ -377,56 +377,90 @@ public class I18nTestRunnerTest {
             I18nTest i18nTest, DocumentResource documentResource) {
         boolean passed;
         System.out.println("\nRunning test: '" + i18nTest.getName() + "' ["
-                +  i18nTest.getUrl() + "].");
+                + i18nTest.getUrl() + "].");
+
+        List<Assertion> expectedAssertions = i18nTest.getExpectedAssertions();
 
         // Generate a list of assertions using the checker.
-        // TODO: Should this the use API?
-        List<Assertion> a = new Check(new ParsedDocument(documentResource))
+        List<Assertion> generatedAssertions =
+                new Check(new ParsedDocument(documentResource))
                 .getAssertions();
-        Collections.sort(a);
-        List<Assertion> generatedRepAssertions = new ArrayList<>();
-        List<Assertion> generatedOtherAssertions = new ArrayList<>();
-        for (Assertion assertion : a) {
-            if (assertion.getId().matches("rep_.*")) {
-                generatedRepAssertions.add(assertion);
-            } else {
-                generatedOtherAssertions.add(assertion);
-            }
-        }
+        Collections.sort(generatedAssertions);
 
-        // Compare the lists of assertions.
-        System.out.print("Expected assertions: ");
-        StringBuilder sb = new StringBuilder("[");
+        // Search for and print the expected assertions.
         int expectedAssertionsFound = 0;
-        for (Assertion assertion : i18nTest.getExpectedAssertions()) {
-            sb.append(assertion.getId())
-                    .append(" (").append(assertion.getLevel()).append(") ");
+        StringBuilder expectedSb = new StringBuilder("Expected: [");
+        for (Assertion expectedAssertion : expectedAssertions) {
             boolean found = false;
             int i = 0;
-            while (found == false && i < generatedRepAssertions.size()) {
-                // Currently compares only by id and level.
-                if (assertion.getId().equals(
-                        generatedRepAssertions.get(i).getId())
-                        && (assertion.getLevel() == Assertion.Level.MESSAGE
-                        || assertion.getLevel().equals(
-                        generatedRepAssertions.get(i).getLevel()))) {
+            while (!found && i < generatedAssertions.size()) {
+                if (// If the id matches ...
+                        generatedAssertions.get(i).getId()
+                        .equals(expectedAssertion.getId())
+                        // And the level can be ignored ...
+                        && (expectedAssertion.getLevel()
+                        == Assertion.Level.MESSAGE
+                        // Or the levels match
+                        || generatedAssertions.get(i).getLevel()
+                        .equals(expectedAssertion.getLevel()))) {
                     found = true;
-                    expectedAssertionsFound++;
                 }
                 i++;
             }
-            sb.append(found ? "[found]" : "[NOT FOUND]").append(", ");
+            if (found) {
+                expectedAssertionsFound++;
+            }
+            expectedSb.append("[")
+                    .append(expectedAssertion.getId())
+                    .append(expectedAssertion.getLevel()
+                    == Assertion.Level.MESSAGE
+                    ? "" : ", " + expectedAssertion.getLevel())
+                    .append("] (")
+                    .append(found ? "found" : "MISSING")
+                    .append("), ");
         }
-        if (!i18nTest.getExpectedAssertions().isEmpty()) {
-            sb.replace(sb.length() - 2, sb.length() - 1, "]");
+        if (!expectedAssertions.isEmpty()) {
+            expectedSb.replace(
+                    expectedSb.length() - 2, expectedSb.length() - 1, "]");
         } else {
-            sb.append("]");
+            expectedSb.append("]");
         }
-        System.out.println(sb);
-        System.out.print("Generated 'rep' assertions: ");
-        print(generatedRepAssertions);
-        System.out.print("Other generated assertions: ");
-        print(generatedOtherAssertions);
+        System.out.println(expectedSb);
+
+        // Sort generated assertions in to 3 categories and print.
+        // (Expected reports.)
+        List<Assertion> gRepExpected = new ArrayList<>();
+        // (Unexpected reports.)
+        List<Assertion> gRepUnexpected = new ArrayList<>();
+        // (Other.)
+        List<Assertion> gOther = new ArrayList<>();
+        for (Assertion generatedAssertion : generatedAssertions) {
+            if (generatedAssertion.getId().matches("rep_.*")) {
+                boolean expected = false;
+                int i = 0;
+                while (!expected && i < expectedAssertions.size()) {
+                    if (generatedAssertion.getId()
+                            .equals(expectedAssertions.get(i).getId())
+                            && (expectedAssertions.get(i).getLevel()
+                            == Assertion.Level.MESSAGE
+                            || generatedAssertion.getLevel()
+                            == expectedAssertions.get(i).getLevel())) {
+                        expected = true;
+                    }
+                    i++;
+                }
+                if (expected) {
+                    gRepExpected.add(generatedAssertion);
+                } else {
+                    gRepUnexpected.add(generatedAssertion);
+                }
+            } else {
+                gOther.add(generatedAssertion);
+            }
+        }
+        System.out.println("Found 'rep': " + toString(gRepExpected));
+        System.out.println("Unexpected 'rep': " + toString(gRepUnexpected));
+        System.out.println("Other: " + toString(gOther));
 
         // Determine result.
         passed = expectedAssertionsFound
@@ -434,24 +468,25 @@ public class I18nTestRunnerTest {
         System.out.println("Result: " + (passed ? "Passed" : "FAILED")
                 + " (found " + expectedAssertionsFound + " of "
                 + i18nTest.getExpectedAssertions().size() + " expected, "
-                + a.size() + " generated.)");
+                + generatedAssertions.size() + " generated.)");
         return passed;
     }
 
-    private static void print(List<Assertion> assertions) {
+    private static String toString(List<Assertion> assertions) {
+        // Will look like: "[[charset_meta, INFO, [context]], ... ]".
         StringBuilder sb = new StringBuilder("[");
         for (Assertion assertion : assertions) {
-            // e.g. "rep_charset_none (WARNING), ".
-            sb.append(assertion.getId()).append(" (")
-                    .append(assertion.getLevel()).append(") Contexts: [")
-                    .append(assertion.getContexts()).append("], ");
+            sb.append("[")
+                    .append(assertion.getId()).append(", ")
+                    .append(assertion.getLevel()).append(", [")
+                    .append(assertion.getContexts()).append("]], ");
         }
         if (!assertions.isEmpty()) {
             sb.replace(sb.length() - 2, sb.length() - 1, "]");
         } else {
             sb.append("]");
         }
-        System.out.println(sb);
+        return sb.toString();
     }
 
     public static class TestsFileParsingException extends RuntimeException {
