@@ -995,20 +995,22 @@ class Check {
         int i = 0;
         Elements allBdoElements =
                 parsedDocument.getDocument().getElementsByTag("bdo");
-        while (bdoTagWithoutDir && i < allBdoElements.size()) {
+        while (!bdoTagWithoutDir && i < allBdoElements.size()) {
             if (!allBdoElements.get(i).hasAttr("dir")) {
                 bdoTagWithoutDir = true;
             }
             i++;
         }
-        assertions.add(new Assertion(
-                "rep_markup_bdo_no_dir",
-                Assertion.Level.INFO,
-                "<code class='kw'>bdo</code> tags found with no"
-                + " <code class='kw'>dir</code> attribute",
-                "Add a <code class='kw'>dir</code> attribute to each <code"
-                + " class='kw'>bdo</code> tag.",
-                new ArrayList<String>()));
+        if (bdoTagWithoutDir) {
+            assertions.add(new Assertion(
+                    "rep_markup_bdo_no_dir",
+                    Assertion.Level.INFO,
+                    "<code class='kw'>bdo</code> tags found with no"
+                    + " <code class='kw'>dir</code> attribute",
+                    "Add a <code class='kw'>dir</code> attribute to each <code"
+                    + " class='kw'>bdo</code> tag.",
+                    new ArrayList<String>()));
+        }
     }
 
     // rep_markup_dir_incorrect (ERROR)
