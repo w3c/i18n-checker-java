@@ -299,10 +299,9 @@ class Check {
             String searchString = parsedDocument.getDocumentBody().substring(
                     0, Math.min(
                     1024, parsedDocument.getDocumentBody().length()));
-            if (!searchString.contains(
-                    "<meta\\s[^>]*http-equiv=[\\\"\\']?Content-Type[^>]*>")
-                    && !searchString.contains(
-                    "preg_match(\"/<meta\\s[^>]*charset=[^>]*>")) {
+            Matcher metaCharsetMatcher = Pattern.compile(
+                    "<meta\\s[^>]*charset=[^>]*>").matcher(searchString);
+            if (!metaCharsetMatcher.find()) {
                 assertions.add(new Assertion(
                         "rep_charset_1024_limit",
                         Assertion.Level.ERROR,
@@ -314,22 +313,7 @@ class Check {
                         + " first thing in the head element.",
                         new ArrayList<String>()));
             }
-
         }
-
-//if ($this->doc->isHTML5 && Information::getFirstVal('charset_meta') != null) {
-//if (!preg_match("/<meta\s[^>]*http-equiv=[\"\']?Content-Type[^>]*>/i", substr($this->markup,0,1024)) &&
-//        !preg_match("/<meta\s[^>]*charset=[^>]*>/i", substr($this->markup,0,1024))) { 
-//        Report::addReport(
-//                'rep_charset_1024_limit',
-//                $category, REPORT_LEVEL_ERROR,
-//                lang('rep_charset_1024_limit'),
-//                lang('rep_charset_1024_limit_expl', Language::format(Utils::codesFromValArray(Information::getValues('charset_meta')), LANG_FORMAT_OL_CODE)),
-//                lang('rep_charset_1024_limit_todo'),
-//                lang('rep_charset_1024_limit_link')
-//                );
-//        }
-//}
     }
 
     // rep_charset_bogus_utf16 (ERROR)
@@ -486,9 +470,25 @@ class Check {
     // rep_charset_meta_charset_invalid (WARNING)
     // "CHARSET REPORT: Meta charset tag will cause validation to fail"
     private void addAssertionRepCharsetMetaCharsetInvalid() {
+
+        List<String> contexts = new ArrayList<>();
         if (!parsedDocument.isHtml5()
                 && !parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
-            List<String> contexts = new ArrayList<>();
+            for (Map.Entry<String, List<String>> charsetMetaDeclaration
+                    : parsedDocument.getCharsetMetaDeclarations().entrySet()) {
+                boolean metaCharsetInvalid = false;
+                for (String metaTag : charsetMetaDeclaration.getValue()) {
+                    if (!metaTag.contains("http-equiv=")
+                            && !metaTag.contains("content=")) {
+                        metaCharsetInvalid = true;
+                    }
+                }
+                if (metaCharsetInvalid) {
+                    contexts.addAll(charsetMetaDeclaration.getValue());
+                }
+            }
+        }
+        if (!contexts.isEmpty()) {
             for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
                     .values()) {
                 contexts.addAll(list);
@@ -628,15 +628,17 @@ class Check {
         if (parsedDocument.getByteOrderMark() != null
                 && parsedDocument.getCharsetXmlDeclaration() == null
                 && parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
-
-            assertions.add(new Assertion(
-                    "rep_charset_no_visible_charset",
-                    Assertion.Level.WARNING,
-                    "No visible in-document encoding declared",
-                    "Add a <code class='kw'>meta</code> tag or XML declaration,"
-                    + " as appropriate, to your page to indicate the character"
-                    + " encoding used.",
-                    new ArrayList<String>()));
+            if (parsedDocument.getByteOrderMark().getCharsetName()
+                    .equals("UTF-8")) {
+                assertions.add(new Assertion(
+                        "rep_charset_no_visible_charset",
+                        Assertion.Level.WARNING,
+                        "No visible in-document encoding declared",
+                        "Add a <code class='kw'>meta</code> tag or XML"
+                        + " declaration, as appropriate, to your page to"
+                        + " indicate the character encoding used.",
+                        new ArrayList<String>()));
+            }
         }
     }
 

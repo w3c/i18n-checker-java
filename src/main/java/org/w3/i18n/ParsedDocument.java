@@ -88,10 +88,11 @@ class ParsedDocument {
         this.byteOrderMark = documentBodyBytes.length <= 5 ? null
                 : Utils.findByteOrderMark(
                 Arrays.copyOf(documentBodyBytes, 4));
+        
+        // TODO: This does more copying than necessary. ~~~ Joe
         boolean bomInContentS = false;
-        int i = 0;
+        int i = 1;
         while (!bomInContentS && i < documentBodyBytes.length - 5) {
-            // TODO: This does more copying than necessary. ~~~ Joe
             bomInContentS = Utils.findByteOrderMark(Arrays.copyOfRange(
                     documentBodyBytes, i, i + 5))
                     != null;
