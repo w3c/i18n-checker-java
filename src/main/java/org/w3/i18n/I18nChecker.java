@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class provides two methods for performing i18n checks on named
- * resources.
+ * This class provides two methods for performing internationalisation (i18n)
+ * checks on web documents.
  *
  * @author Joseph J Short
  */
@@ -30,11 +30,34 @@ public final class I18nChecker {
     private I18nChecker() {
     }
 
+    /**
+     * Runs a check on a remote document at the given {@code URL} and returns
+     * the results as a list of {@link Assertion}. The remote document is
+     * retrieved using an HTTP request.
+     *
+     * @param url the URL of the remote document to check.
+     * @return a list of {@link Assertion} which contain information about the
+     * internationalisation of the document.
+     * @throws IOException if the remote document cannot be retrieved for
+     * checking.
+     */
     public static List<Assertion> check(URL url) throws IOException {
         return new Check(new ParsedDocument(DocumentResource.getRemote(url)))
                 .getAssertions();
     }
 
+    /**
+     * Runs a check on the given document body and HTTP response headers as if
+     * they were a remote document, returns the results as a list of
+     * {@link Assertion}. This method sends no HTTP requests.
+     *
+     * @param url the URL of the document.
+     * @param body the body of the document (should be text and HTML).
+     * @param headers the HTTP response headers obtained by retrieving the
+     * document from an HTTP server.
+     * @return a list of {@link Assertion} which contain information about the
+     * internationalisation of the document.
+     */
     public static List<Assertion> check(
             URL url, InputStream body, Map<String, List<String>> headers) {
         return new Check(
