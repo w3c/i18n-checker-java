@@ -466,9 +466,10 @@ public class I18nTestRunnerTest {
         passed = expectedAssertionsFound
                 == i18nTest.getExpectedAssertions().size();
         System.out.println("Result: " + (passed ? "Passed" : "FAILED")
-                + " (found " + expectedAssertionsFound + " of "
-                + i18nTest.getExpectedAssertions().size() + " expected, "
-                + generatedAssertions.size() + " generated.)");
+                + " (generated: " + expectedAssertionsFound + " of "
+                + gRepExpected.size() + " expected 'rep' assertions, "
+                + gRepUnexpected.size() + " unexpected 'rep' assertions, and "
+                + gOther.size() + " other assertions).");
         return passed;
     }
 
