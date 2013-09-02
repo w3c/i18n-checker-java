@@ -65,6 +65,8 @@ class ParsedDocument {
     private final Set<String> inDocCharsetDeclarations;
     private final Set<String> allLangAttributes;
     private final Set<String> allXmlLangAttributes;
+    private final List<Element> allLangAttributeElements;
+    private final List<Element> allXmlLangAttributeElements;
     private final List<List<String>> allConflictingLangAttributes;
     private final Set<String> allNonNfcClassIdNames;
     private final Set<String> allDirAttributes;
@@ -88,7 +90,7 @@ class ParsedDocument {
         this.byteOrderMark = documentBodyBytes.length <= 5 ? null
                 : Utils.findByteOrderMark(
                 Arrays.copyOf(documentBodyBytes, 4));
-        
+
         // TODO: This does more copying than necessary. ~~~ Joe
         boolean bomInContentS = false;
         int i = 1;
@@ -252,8 +254,12 @@ class ParsedDocument {
 
         this.allConflictingLangAttributes = new ArrayList<>();
         this.allLangAttributes = new TreeSet<>();
+        this.allXmlLangAttributes = new TreeSet<>();
+        this.allLangAttributeElements = new ArrayList<>();
+        this.allXmlLangAttributeElements = new ArrayList<>();
         for (Element element : document.getElementsByAttribute("lang")) {
             allLangAttributes.add(element.attr("lang"));
+            allLangAttributeElements.add(element);
             if (element.hasAttr("xml:lang")) {
                 if (!element.attr("xml:lang").equals(element.attr("lang"))) {
                     this.allConflictingLangAttributes.add(Arrays.asList(
@@ -261,9 +267,9 @@ class ParsedDocument {
                 }
             }
         }
-        this.allXmlLangAttributes = new TreeSet<>();
         for (Element element : document.getElementsByAttribute("xml:lang")) {
             allXmlLangAttributes.add(element.attr("xml:lang"));
+            allXmlLangAttributeElements.add(element);
         }
 
         this.allNonNfcClassIdNames = new TreeSet<>();
@@ -455,6 +461,14 @@ class ParsedDocument {
 
     public Set<String> getAllXmlLangAttributes() {
         return allXmlLangAttributes;
+    }
+
+    public List<Element> getAllLangAttributeElements() {
+        return allLangAttributeElements;
+    }
+
+    public List<Element> getAllXmlLangAttributeElements() {
+        return allXmlLangAttributeElements;
     }
 
     public List<List<String>> getAllConflictingLangAttributes() {

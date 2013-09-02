@@ -22,6 +22,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 /**
@@ -884,8 +885,9 @@ class Check {
     private void addAssertionRepLangMissingHtmlAttr() {
         if ((parsedDocument.isXhtml10() & !parsedDocument.isServedAsXml())
                 || parsedDocument.isHtml5()) {
-            if (!parsedDocument.getAllLangAttributes()
-                    .containsAll(parsedDocument.getAllXmlLangAttributes())) {
+            if (!parsedDocument.getAllLangAttributeElements()
+                    .containsAll(
+                    parsedDocument.getAllXmlLangAttributeElements())) {
                 assertions.add(new Assertion(
                         "rep_lang_missing_html_attr",
                         parsedDocument.isHtml5()
@@ -906,8 +908,9 @@ class Check {
     // "WARNING: A tag uses a lang attribute without an associated xml:lang ..."
     private void addAssertionRepLangMissingXmlAttr() {
         if (parsedDocument.isXhtml10() || parsedDocument.isXhtml11()) {
-            if (!parsedDocument.getAllXmlLangAttributes()
-                    .containsAll(parsedDocument.getAllLangAttributes())) {
+            if (!parsedDocument.getAllXmlLangAttributeElements()
+                    .containsAll(
+                    parsedDocument.getAllLangAttributeElements())) {
                 assertions.add(new Assertion(
                         "rep_lang_missing_xml_attr",
                         parsedDocument.isServedAsXml()
