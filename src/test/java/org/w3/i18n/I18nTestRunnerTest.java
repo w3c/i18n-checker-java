@@ -40,12 +40,6 @@ import static org.junit.Assert.*;
  */
 public class I18nTestRunnerTest {
 
-    static {
-        // TODO: Parse a 'test.conf' file.
-    }
-    private static final String TEST_URL =
-            "http://www.w3.org/International/tests/i18n-checker/generate";
-
     @Test
     public void testCharsetTests() {
         File file = new File(
@@ -303,7 +297,8 @@ public class I18nTestRunnerTest {
                     } catch (MalformedURLException ex) {
                         throw new TestsFileParsingException("Could not"
                                 + " construct a URL from testFor property."
-                                + " <TEST_URL>: " + TEST_URL + ", propety name:"
+                                + " TestConfig.TEST_RUNNER_URL: "
+                                + TestConfig.TEST_RUNNER_URL + ", propety name:"
                                 + " \"" + prefix + "_test_for\", file: '"
                                 + configuration.getFileName() + "'.", ex);
                     }
@@ -324,8 +319,8 @@ public class I18nTestRunnerTest {
         if (id == null || format == null || serveAs == null) {
             throw new NullPointerException();
         }
-        return new URL(TEST_URL + "?test=" + id + "&format=" + format
-                + "&serveas=" + serveAs);
+        return new URL(TestConfig.TEST_RUNNER_URL + "?test=" + id + "&format="
+                + format + "&serveas=" + serveAs);
     }
 
     /* Prepares a DocumentResource for each distinct URL in the list of

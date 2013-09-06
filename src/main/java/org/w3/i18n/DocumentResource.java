@@ -13,6 +13,7 @@
 package org.w3.i18n;
 
 import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.AsyncHttpClientConfig;
 import com.ning.http.client.Response;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -70,7 +71,10 @@ class DocumentResource {
 
     public static DocumentResource getRemote(URL url) throws IOException {
         DocumentResource documentResource;
-        try (AsyncHttpClient asyncHttpClient = new AsyncHttpClient()) {
+        try (AsyncHttpClient asyncHttpClient = new AsyncHttpClient(
+                new AsyncHttpClientConfig.Builder()
+                .setRequestTimeoutInMs(Config.REQUEST_TIMEOUT * 1000)
+                .build())) {
             documentResource = getRemote(asyncHttpClient, url);
         }
         return documentResource;
