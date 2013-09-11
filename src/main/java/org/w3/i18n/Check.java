@@ -22,7 +22,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 /**
@@ -38,10 +37,28 @@ class Check {
 
     public Check(ParsedDocument parsedDocument) {
         this.parsedDocument = parsedDocument;
-
-        // Perform checks.
         this.assertions = new ArrayList<>();
 
+        // Check for a bad ParsedDocument.
+        // boolean hasResponseHeaders =
+        //        !parsedDocument.getDocumentResource().getHeaders().isEmpty();
+        boolean hasDocumentBody = parsedDocument.getDocumentBody() != null
+                ? !parsedDocument.getDocumentBody().isEmpty()
+                : false;
+        if (hasDocumentBody) {
+            check();
+        } else {
+            assertions.add(new Assertion(
+                    "no_content",
+                    Assertion.Level.MESSAGE,
+                    "No content to check",
+                    "Either the document was empty or the contents could not be"
+                    + " retrieved.",
+                    new ArrayList()));
+        }
+    }
+
+    private void check() {
         // Add information assertions.
         addAssertionDtd();
         addAssertionCharsetBom();
