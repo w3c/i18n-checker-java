@@ -15,6 +15,8 @@ package org.w3.i18n;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simple application configuration class for the i18n-checker.
@@ -26,6 +28,7 @@ final class Config {
     // Noninstantiable class.
     private Config() {
     }
+    private static final Logger logger = LoggerFactory.getLogger(Config.class);
     // Location of the configuration file.
     private static final String CONFIGURATION_FILE = "i18n-checker.properties";
     // Configuration items: Final members that are visible to the package.
@@ -33,7 +36,7 @@ final class Config {
 
     static {
         // Load and parse configuration file.
-        System.out.println("Reading configuration file: " + CONFIGURATION_FILE);
+        logger.info("Reading configuration file: " + CONFIGURATION_FILE);
         Configuration configuration;
         try {
             configuration = new PropertiesConfiguration(CONFIGURATION_FILE);
