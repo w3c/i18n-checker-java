@@ -25,6 +25,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.htmlparser.jericho.Source;
 import org.apache.commons.io.ByteOrderMark;
 import org.apache.commons.io.IOUtils;
 import org.jsoup.Jsoup;
@@ -43,6 +44,7 @@ class ParsedDocument {
 
     private final DocumentResource documentResource;
     private final Document document;
+    private final Source source;
     private final String documentBody;
     private final String doctypeDeclaration;
     private final DoctypeClassification doctypeClassification;
@@ -108,8 +110,10 @@ class ParsedDocument {
 
 
         // Use the HTML parser on the document body.
+        // TODO: Remove Jsoup.
         this.document = Jsoup.parse(
                 documentBody, documentResource.getUrl().toString());
+        this.source = new Source(documentBody);
 
         // Find the doctype declaration; otherwise declare null.
         Matcher dtdMatcher = Pattern.compile("<!DOCTYPE[^>]*>").matcher(
