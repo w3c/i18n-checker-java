@@ -389,15 +389,7 @@ public class I18nTestRunnerTest {
             boolean found = false;
             int i = 0;
             while (!found && i < generatedAssertions.size()) {
-                if (// If the id matches ...
-                        generatedAssertions.get(i).getId()
-                        .equals(expectedAssertion.getId())
-                        // And the level can be ignored ...
-                        && (expectedAssertion.getLevel()
-                        == Assertion.Level.MESSAGE
-                        // Or the levels match
-                        || generatedAssertions.get(i).getLevel()
-                        .equals(expectedAssertion.getLevel()))) {
+                if (matches(generatedAssertions.get(i), expectedAssertion)) {
                     found = true;
                 }
                 i++;
@@ -424,48 +416,53 @@ public class I18nTestRunnerTest {
 
         // Sort generated assertions in to 3 categories and print.
         // (Expected reports.)
-        List<Assertion> gRepExpected = new ArrayList<>();
+        List<Assertion> gFound = new ArrayList<>();
         // (Unexpected reports.)
         List<Assertion> gRepUnexpected = new ArrayList<>();
         // (Other.)
         List<Assertion> gOther = new ArrayList<>();
         for (Assertion generatedAssertion : generatedAssertions) {
-            if (generatedAssertion.getId().matches("rep_.*")) {
-                boolean expected = false;
-                int i = 0;
-                while (!expected && i < expectedAssertions.size()) {
-                    if (generatedAssertion.getId()
-                            .equals(expectedAssertions.get(i).getId())
-                            && (expectedAssertions.get(i).getLevel()
-                            == Assertion.Level.MESSAGE
-                            || generatedAssertion.getLevel()
-                            == expectedAssertions.get(i).getLevel())) {
-                        expected = true;
-                    }
-                    i++;
+            boolean expected = false;
+            int i = 0;
+            while (!expected && i < expectedAssertions.size()) {
+                if (matches(generatedAssertion, expectedAssertions.get(i))) {
+                    expected = true;
                 }
-                if (expected) {
-                    gRepExpected.add(generatedAssertion);
-                } else {
-                    gRepUnexpected.add(generatedAssertion);
-                }
+                i++;
+            }
+            if (expected) {
+                gFound.add(generatedAssertion);
+            } else if (generatedAssertion.getId().matches("rep_.*")) {
+                gRepUnexpected.add(generatedAssertion);
             } else {
                 gOther.add(generatedAssertion);
             }
         }
-        System.out.println("Found 'rep': " + toString(gRepExpected));
-        System.out.println("Unexpected 'rep': " + toString(gRepUnexpected));
-        System.out.println("Other: " + toString(gOther));
+
+        System.out.println(
+                "Found: " + toString(gFound));
+        System.out.println(
+                "Unexpected 'rep': " + toString(gRepUnexpected));
+        System.out.println(
+                "Other: " + toString(gOther));
 
         // Determine result.
         passed = expectedAssertionsFound
                 == i18nTest.getExpectedAssertions().size();
-        System.out.println("Result: " + (passed ? "Passed" : "FAILED")
+
+        System.out.println(
+                "Result: " + (passed ? "Passed" : "FAILED")
                 + " (generated: " + expectedAssertionsFound + " of "
-                + gRepExpected.size() + " expected 'rep' assertions, "
-                + gRepUnexpected.size() + " unexpected 'rep' assertions, and "
-                + gOther.size() + " other assertions).");
+                + expectedAssertions.size() + " expected, "
+                + gRepUnexpected.size() + " unexpected 'rep', and "
+                + gOther.size() + " other).");
         return passed;
+    }
+
+    private static boolean matches(Assertion found, Assertion expected) {
+        return found.getId().equals(expected.getId())
+                && (expected.getLevel() == Assertion.Level.MESSAGE
+                || found.getLevel() == expected.getLevel());
     }
 
     private static String toString(List<Assertion> assertions) {
@@ -483,6 +480,10 @@ public class I18nTestRunnerTest {
             sb.append("]");
         }
         return sb.toString();
+
+
+
+
     }
 
     public static class TestsFileParsingException extends RuntimeException {

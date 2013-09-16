@@ -67,21 +67,13 @@ public class ParsedDocumentTest {
     }
 
     @Test
-    public void testGetDocument() {
-        System.out.println("Testing: getDocument");
-        assertEquals(instance1.getDocument().title(),
-                "World Wide Web Consortium (W3C)");
-        assertEquals(instance2.getDocument().title(),
-                "W3C中国");
-    }
-
-    @Test
     public void testGetDoctypeDeclaration() {
         System.out.println("Testing: getDoctypeDeclaration");
-        assertEquals(instance1.getDoctypeDeclaration(),
+        assertEquals(
                 "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
-                + " \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">");
-        assertEquals(instance2.getDoctypeDeclaration(), "<!DOCTYPE html>");
+                + " \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">",
+                instance1.getDoctypeTag());
+        assertEquals("<!DOCTYPE html>", instance2.getDoctypeTag());
     }
 
     @Test
@@ -155,23 +147,6 @@ public class ParsedDocumentTest {
         System.out.println("Testing: getCharsetXmlDeclaration");
         assertNull(instance1.getCharsetXmlDeclaration());
         assertNull(instance2.getCharsetXmlDeclaration());
-    }
-
-    @Test
-    public void testGetCharsetMeta() {
-        System.out.println("Testing: getCharsetMeta");
-        assertTrue(instance1.getCharsetMetaDeclarations().containsKey("utf-8"));
-        assertTrue(instance2.getCharsetMetaDeclarations().containsKey("utf-8"));
-    }
-
-    @Test
-    public void testGetCharsetMetaContext() {
-        System.out.println("Testing: getCharsetMetaContext");
-        assertTrue(instance1.getCharsetMetaDeclarations().get("utf-8")
-                .contains("<meta http-equiv=\"Content-Type\""
-                + " content=\"text/html; charset=utf-8\" />"));
-        assertTrue(instance2.getCharsetMetaDeclarations().get("utf-8")
-                .contains("<meta charset=\"UTF-8\" />"));
     }
 
     @Test

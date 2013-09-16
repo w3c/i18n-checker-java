@@ -20,9 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.jsoup.select.Elements;
 
 /**
  * A {@code Check} object represents a stateful process of performing i18n
@@ -122,28 +119,34 @@ class Check {
         return assertions;
     }
 
+    /* Document Type Declaration (DOCTYPE). Context has a DOCTYPE classification
+     * (e.g. "XHTML 1.1") and the original '!DOCTYPE' tag. */
     private void addAssertionDtd() {
-        if (parsedDocument.getDoctypeDeclaration() != null) {
+        if (parsedDocument.getDoctypeTag() != null) {
             assertions.add(AssertionProvider.getForWith(
                     "info_dtd",
                     Assertion.Level.INFO,
                     Arrays.asList(
-                    parsedDocument.getDoctypeDescription(),
-                    parsedDocument.getDoctypeDeclaration())));
+                    parsedDocument.getDoctypeClassification(),
+                    parsedDocument.getDoctypeTag())));
         }
     }
 
+    /* Charset from Byte Order Mark (BOM). Context has the name of the charset
+     * and the name of the BOM. */
     private void addAssertionCharsetBom() {
         if (parsedDocument.getByteOrderMark() != null) {
             assertions.add(AssertionProvider.getForWith(
                     "info_charset_bom",
                     Assertion.Level.INFO,
                     Arrays.asList(
-                    parsedDocument.getByteOrderMark().getCharsetName(),
-                    parsedDocument.getByteOrderMark().toString())));
+                    parsedDocument.getCharsetByteOrderMark(),
+                    parsedDocument.getByteOrderMark())));
         }
     }
 
+    /* Charset from XML declaration ('?xml' tag at the start of the document).
+     * Context has the name of the character encoding and the orginal tag. */
     private void addAssertionCharsetXmlDeclaration() {
         if (parsedDocument.getCharsetXmlDeclaration() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -155,21 +158,27 @@ class Check {
         }
     }
 
+    /* Charset(s) from 'meta' tags (e.g. "<meta charset="utf-8">"). Context has
+     * a list of charset names followed by a list of corresponding 'meta' tags.
+     * Ideally there should be just one such tag in the document. */
     private void addAssertionCharsetMeta() {
-        if (!parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
+        if (!parsedDocument.getCharsetMetaTags().isEmpty()) {
             ArrayList<String> contexts = new ArrayList<>();
-            for (Map.Entry<String, List<String>> entry
-                    : parsedDocument.getCharsetMetaDeclarations().entrySet()) {
-                contexts.add(entry.getKey());
-                contexts.addAll(entry.getValue());
-                assertions.add(AssertionProvider.getForWith(
-                        "info_charset_meta",
-                        Assertion.Level.INFO,
-                        contexts));
+            contexts.addAll(parsedDocument.getCharsetMetaTags().keySet());
+            for (List<String> tags
+                    : parsedDocument.getCharsetMetaTags().values()) {
+                contexts.addAll(tags);
             }
+            assertions.add(AssertionProvider.getForWith(
+                    "info_charset_meta",
+                    Assertion.Level.INFO,
+                    contexts));
         }
     }
 
+    /* Charset from 'Content-Type' HTTP response header. Context has the charset
+     * name and the header verbatim (e.g. "Content-Type: text/html;
+     * charset=UTF-8"). */
     private void addAssertionCharsetHttp() {
         if (parsedDocument.getCharsetHttp() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -181,7 +190,10 @@ class Check {
         }
     }
 
+    /* Language from a 'lang' and/or 'xml:lang' attribute in opening 'html' tag.
+     * Context has the value of the attributes and the original 'html' tag. */
     private void addAssertionLangAttr() {
+        // Only distinct values of the two attributes are added to the context.
         Set<String> langs = new TreeSet<>();
         if (parsedDocument.getOpeningHtmlTagLang() != null) {
             langs.add(parsedDocument.getOpeningHtmlTagLang());
@@ -199,6 +211,9 @@ class Check {
         }
     }
 
+    /* Language from the 'Content-Language' HTTP response header. Context has
+     * the value of the header (should be a language code) and the header
+     * verbatim (e.g. "Content-Language: en"). */
     private void addAssertionLangHttp() {
         if (parsedDocument.getContentLanguage() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -211,6 +226,10 @@ class Check {
         }
     }
 
+    /* Language from a 'meta' tag with a 'http-equiv' attribute set to
+     * 'Content-Language'. Context has the value of the 'content' attribute
+     * (should be a language code) and the original tag (e.g. "<meta 
+     * http-equiv="Content-Language" value="de">"). */
     private void addAssertionLangMeta() {
         if (parsedDocument.getLangMeta() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -220,6 +239,9 @@ class Check {
         }
     }
 
+    /* Default text-direction given by 'dir' attribute in the opening 'html'
+     * tag. Context has the value of the attribute (should be 'ltr', 'rtl', or
+     * 'auto') and the opening 'html' tag. */
     private void addAssertionDirHtml() {
         if (parsedDocument.getDefaultDir() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -231,6 +253,9 @@ class Check {
         }
     }
 
+    /* Class or id names used in the document that are non-NFC (a Unicode
+     * normalisation form) or non-ASCII. Context has a list of the names
+     * followed by a list of the original opening tags. */
     private void addAssertionClassID() {
         if (!parsedDocument.getAllNonNfcClassIdNames().isEmpty()) {
             assertions.add(AssertionProvider.getForWith(
@@ -241,21 +266,25 @@ class Check {
         }
     }
 
+    /* Mimetype (value of the 'Content-Type' HTTP response header. Context has
+     * the header verbatim. */
     private void addAssertionMimetype() {
         if (parsedDocument.getContentType() != null) {
             assertions.add(AssertionProvider.getForWith(
                     "info_mimetype",
                     Assertion.Level.INFO,
-                    Arrays.asList(parsedDocument.getContentType())));
+                    Arrays.asList(
+                    "Content-Type: " + parsedDocument.getContentType())));
         }
     }
 
+    /* HTTP request headers sent when retrieving a remote document. Context has
+     * the 'Accept-Language' and 'Accept-Charset' headers verbatim. (These are
+     * the only two headers which might affect the i18n of the response.) */
     private void addAssertionRequestHeaders() {
-        /*
-         * TODO: Currently there are never any request headers because
-         * async-http-client doesn't use any by default.
-         */
-        // Aggregate desired request headers.
+        /* TODO: Currently there are never any request headers because
+         * async-http-client doesn't use any by default. */
+        // Retrieve the desired headers.
         Map<String, List<String>> headers =
                 parsedDocument.getDocumentResource().getHeaders();
         String[] desiredHeaders = {
@@ -266,7 +295,7 @@ class Check {
         for (String headerName : desiredHeaders) {
             if (headers.containsKey(headerName)) {
                 /* Build a string representation of the header by appending the
-                 * header contents to the header name. */
+                 * header contents to the header name and a colon. */
                 StringBuilder sb = new StringBuilder();
                 sb.append(headerName).append(": ");
                 for (String headerContents : headers.get(headerName)) {
@@ -283,35 +312,29 @@ class Check {
         }
     }
 
-    // rep_charset_1024_limit (ERROR)
-    // "CHARSET REPORT: Meta character encoding declaration not within 1024 ..."
+    /* CHARSET REPORT: Document has a 'meta' tag with a charset declaration 
+     * outside of the firs 1024 byte in the document. */
     private void addAssertionRepCharset1024Limit() {
         if (parsedDocument.isHtml5()
-                && !parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
-            String searchString = parsedDocument.getDocumentBody().substring(
-                    0, Math.min(
-                    1024, parsedDocument.getDocumentBody().length()));
-            Matcher metaCharsetMatcher = Pattern.compile(
-                    "<meta\\s[^>]*charset=[^>]*>").matcher(searchString);
-            if (!metaCharsetMatcher.find()) {
-                assertions.add(new Assertion(
-                        "rep_charset_1024_limit",
-                        Assertion.Level.ERROR,
-                        "Character encoding declaration in a <code"
-                        + " class='kw'>meta</code> tag not within 1024 bytes of"
-                        + " the file start",
-                        "Move the character encoding declaration nearer to the"
-                        + " top of the page. Usually it is best to make it the"
-                        + " first thing in the head element.",
-                        new ArrayList<String>()));
-            }
+                && !parsedDocument.getCharsetMetaTagsOutside1024().isEmpty()) {
+            assertions.add(new Assertion(
+                    "rep_charset_1024_limit",
+                    Assertion.Level.ERROR,
+                    "Character encoding declaration in a <code"
+                    + " class='kw'>meta</code> tag not within 1024 bytes of"
+                    + " the file start",
+                    "Move the character encoding declaration nearer to the"
+                    + " top of the page. Usually it is best to make it the"
+                    + " first thing in the head element.",
+                    parsedDocument.getCharsetMetaTagsOutside1024()));
+
         }
     }
 
     // rep_charset_bogus_utf16 (ERROR)
     // "CHARSET REPORT: UTF-16 encoding declaration in a non-UTF-16 document"
     private void addAssertionRepCharsetBogusUtf16() {
-        if (parsedDocument.getCharsetMetaDeclarations()
+        if (parsedDocument.getCharsetMetaTags()
                 .get("utf-16") != null && !parsedDocument.isUtf16()) {
             assertions.add(new Assertion(
                     "rep_charset_bogus_utf16",
@@ -319,7 +342,7 @@ class Check {
                     "UTF-16 encoding declaration in a non-UTF-16 document",
                     "Change the encoding declaration to reflect the actual"
                     + " encoding of the page.",
-                    new ArrayList<>(parsedDocument.getCharsetMetaDeclarations()
+                    new ArrayList<>(parsedDocument.getCharsetMetaTags()
                     .get("utf-16"))));
         }
     }
@@ -328,8 +351,8 @@ class Check {
     // "CHARSET REPORT: UTF-8 BOM found at start of file"
     private void addAssertionRepCharsetBomFound() {
         if (parsedDocument.getByteOrderMark() != null
-                && parsedDocument.getByteOrderMark()
-                .getCharsetName().trim().toLowerCase().contains("utf-8")) {
+                && parsedDocument.getCharsetByteOrderMark().trim()
+                .toLowerCase().contains("utf-8")) {
             assertions.add(new Assertion(
                     "rep_charset_bom_found",
                     Assertion.Level.WARNING,
@@ -349,7 +372,7 @@ class Check {
     // rep_charset_bom_in_content (WARNING)
     // "CHARSET REPORT: BOM in content"
     private void addAssertionRepCharsetBomInContent() {
-        if (parsedDocument.hasBomInContent()) {
+        if (!parsedDocument.getBomsInContent().isEmpty()) {
             assertions.add(new Assertion(
                     "rep_charset_bom_in_content",
                     Assertion.Level.WARNING,
@@ -363,7 +386,7 @@ class Check {
                     + " some editors (such as Notepad on Windows) do not give"
                     + " you a choice, and always add the byte order mark. In"
                     + " this case you may need to use a different editor.",
-                    new ArrayList<String>()));
+                    parsedDocument.getBomsInContent()));
         }
     }
 
@@ -371,16 +394,7 @@ class Check {
     // rep_charset_charset_attr (WARNING)
     // "CHARSET REPORT: charset attribute used on a or link elements"
     private void addAssertionRepCharsetCharsetAttr() {
-        Elements elements = new Elements();
-        elements.addAll(parsedDocument.getDocument().getElementsByTag("a"));
-        elements.addAll(parsedDocument.getDocument().getElementsByTag("link"));
-        int i = 0;
-        boolean addAssertion = false;
-        while (!addAssertion && i < elements.size()) {
-            addAssertion = elements.get(i).hasAttr("charset");
-            i++;
-        }
-        if (addAssertion) {
+        if (!parsedDocument.getCharsetLinkTags().isEmpty()) {
             assertions.add(new Assertion(
                     "rep_charset_charset_attr",
                     parsedDocument.isHtml5()
@@ -392,7 +406,7 @@ class Check {
                     + " is under your control, ensure that any appropriate"
                     + " character encoding information is provided for that"
                     + " page.",
-                    new ArrayList<String>()));
+                    parsedDocument.getCharsetLinkTags()));
         }
     }
 
@@ -416,17 +430,17 @@ class Check {
     // rep_charset_incorrect_use_meta (WARNING)
     // "CHARSET REPORT: Incorrect use of meta encoding declaration"
     private void addAssertionRepCharsetIncorrectUseMeta() {
-        if (!parsedDocument.getCharsetMetaDeclarations().isEmpty()
+        if (!parsedDocument.getCharsetMetaTags().isEmpty()
                 && parsedDocument.getCharsetHttp() == null
                 && parsedDocument.getByteOrderMark() == null
                 && parsedDocument.getCharsetXmlDeclaration() == null
                 && parsedDocument.isXhtml1X()
-                && !parsedDocument.getCharsetMetaDeclarations()
+                && !parsedDocument.getCharsetMetaTags()
                 .containsKey("utf-8")
-                && !parsedDocument.getCharsetMetaDeclarations()
+                && !parsedDocument.getCharsetMetaTags()
                 .containsKey("utf-16")) {
             List<String> contexts = new ArrayList<>();
-            for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
+            for (List<String> list : parsedDocument.getCharsetMetaTags()
                     .values()) {
                 contexts.addAll(list);
             }
@@ -465,9 +479,9 @@ class Check {
 
         List<String> contexts = new ArrayList<>();
         if (!parsedDocument.isHtml5()
-                && !parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
+                && !parsedDocument.getCharsetMetaTags().isEmpty()) {
             for (Map.Entry<String, List<String>> charsetMetaDeclaration
-                    : parsedDocument.getCharsetMetaDeclarations().entrySet()) {
+                    : parsedDocument.getCharsetMetaTags().entrySet()) {
                 boolean metaCharsetInvalid = false;
                 for (String metaTag : charsetMetaDeclaration.getValue()) {
                     if (!metaTag.contains("http-equiv=")
@@ -481,7 +495,7 @@ class Check {
             }
         }
         if (!contexts.isEmpty()) {
-            for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
+            for (List<String> list : parsedDocument.getCharsetMetaTags()
                     .values()) {
                 contexts.addAll(list);
             }
@@ -504,10 +518,10 @@ class Check {
     // rep_charset_meta_ineffective (INFO)
     // "CHARSET REPORT: Meta encoding declarations don't work with XML"
     private void addAssertionRepCharsetMetaIneffective() {
-        if (!parsedDocument.getCharsetMetaDeclarations().isEmpty()
+        if (!parsedDocument.getCharsetMetaTags().isEmpty()
                 && parsedDocument.isServedAsXml()) {
             List<String> contexts = new ArrayList<>();
-            for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
+            for (List<String> list : parsedDocument.getCharsetMetaTags()
                     .values()) {
                 contexts.addAll(list);
             }
@@ -527,9 +541,9 @@ class Check {
     // rep_charset_multiple_meta (ERROR)
     // "CHARSET REPORT: Multiple encoding declarations using the meta tag"
     private void addAssertionRepCharsetMultipleMeta() {
-        if (parsedDocument.getCharsetMetaDeclarations().size() > 1) {
+        if (parsedDocument.getCharsetMetaTags().size() > 1) {
             List<String> contexts = new ArrayList<>();
-            for (List<String> list : parsedDocument.getCharsetMetaDeclarations()
+            for (List<String> list : parsedDocument.getCharsetMetaTags()
                     .values()) {
                 contexts.addAll(list);
             }
@@ -550,7 +564,7 @@ class Check {
         if (parsedDocument.getCharsetXmlDeclaration() != null
                 && parsedDocument.getCharsetHttp() == null
                 && parsedDocument.getByteOrderMark() == null
-                && parsedDocument.getCharsetMetaDeclarations().isEmpty()
+                && parsedDocument.getCharsetMetaTags().isEmpty()
                 && (parsedDocument.isHtml()
                 || parsedDocument.isHtml5()
                 || (parsedDocument.isXhtml10()
@@ -619,8 +633,8 @@ class Check {
     private void addAssertionRepCharsetNoVisibleCharset() {
         if (parsedDocument.getByteOrderMark() != null
                 && parsedDocument.getCharsetXmlDeclaration() == null
-                && parsedDocument.getCharsetMetaDeclarations().isEmpty()) {
-            if (parsedDocument.getByteOrderMark().getCharsetName()
+                && parsedDocument.getCharsetMetaTags().isEmpty()) {
+            if (parsedDocument.getCharsetByteOrderMark()
                     .equals("UTF-8")) {
                 assertions.add(new Assertion(
                         "rep_charset_no_visible_charset",
@@ -657,35 +671,36 @@ class Check {
     // rep_charset_pragma (INFO)
     // "CHARSET REPORT: Meta charset declaration uses http-equiv"
     private void addAssertionRepCharsetPragma() {
-        boolean containsPragma = false;
-        List<String> contexts = new ArrayList<>();
-        for (List<String> list : parsedDocument
-                .getCharsetMetaDeclarations().values()) {
-            for (String context : list) {
-                if (context.contains("http-equiv")) {
-                    containsPragma = true;
-                    contexts.add(context);
+        if (parsedDocument.isHtml5()) {
+            List<String> contexts = new ArrayList<>();
+            for (List<String> list : parsedDocument
+                    .getCharsetMetaTags().values()) {
+                for (String context : list) {
+                    if (context.contains("http-equiv")) {
+                        contexts.add(context);
+                    }
                 }
             }
-        }
-        if (parsedDocument.isHtml5() && containsPragma) {
-            assertions.add(new Assertion(
-                    "rep_charset_pragma",
-                    Assertion.Level.INFO,
-                    "<code class='kw'>meta</code> character encoding"
-                    + " declaration uses <code class='kw'>http-equiv</code>",
-                    "Replace the <code class='kw'>http-equiv</code> and <code"
-                    + " class='kw'>content</code> attributes in your <code"
-                    + " class='kw'>meta</code> tag with a <code"
-                    + " class='kw'>charset</code> attribute.",
-                    contexts));
+            if (!contexts.isEmpty()) {
+                assertions.add(new Assertion(
+                        "rep_charset_pragma",
+                        Assertion.Level.INFO,
+                        "<code class='kw'>meta</code> character encoding"
+                        + " declaration uses <code"
+                        + " class='kw'>http-equiv</code>",
+                        "Replace the <code class='kw'>http-equiv</code> and"
+                        + " <code class='kw'>content</code> attributes in your"
+                        + " <code class='kw'>meta</code> tag with a <code"
+                        + " class='kw'>charset</code> attribute.",
+                        contexts));
+            }
         }
     }
 
     // rep_charset_utf16_meta (ERROR)
     // "CHARSET REPORT: Meta character encoding declaration used in UTF-16 page"
     private void addAssertionRepCharsetUtf16Meta() {
-        if (parsedDocument.getCharsetMetaDeclarations().containsKey("utf-16")
+        if (parsedDocument.getCharsetMetaTags().containsKey("utf-16")
                 && parsedDocument.isUtf16() && parsedDocument.isHtml5()) {
             assertions.add(new Assertion(
                     "rep_charset_utf16_meta",
@@ -694,7 +709,7 @@ class Check {
                     + " page",
                     "Remove the <code class='kw'>meta</code> encoding"
                     + " declaration.",
-                    parsedDocument.getCharsetMetaDeclarations().get("utf-16")));
+                    parsedDocument.getCharsetMetaTags().get("utf-16")));
         }
     }
 
@@ -711,7 +726,7 @@ class Check {
             nonBomCharsets.put(parsedDocument.getCharsetXmlDeclaration(),
                     Arrays.asList(parsedDocument.getXmlDeclaration()));
         }
-        nonBomCharsets.putAll(parsedDocument.getCharsetMetaDeclarations());
+        nonBomCharsets.putAll(parsedDocument.getCharsetMetaTags());
         for (Map.Entry<String, List<String>> entry
                 : nonBomCharsets.entrySet()) {
             if (entry.getKey().matches("utf-16 ?\\(?[bl]e\\)?")) {
@@ -876,9 +891,9 @@ class Check {
     private void addAssertionRepLangMissingHtmlAttr() {
         if ((parsedDocument.isXhtml10() & !parsedDocument.isServedAsXml())
                 || parsedDocument.isHtml5()) {
-            if (!parsedDocument.getAllLangAttributeElements()
+            if (!parsedDocument.getAllLangAttributeTags()
                     .containsAll(
-                    parsedDocument.getAllXmlLangAttributeElements())) {
+                    parsedDocument.getAllXmlLangAttributeTags())) {
                 assertions.add(new Assertion(
                         "rep_lang_missing_html_attr",
                         parsedDocument.isHtml5()
@@ -899,9 +914,9 @@ class Check {
     // "WARNING: A tag uses a lang attribute without an associated xml:lang ..."
     private void addAssertionRepLangMissingXmlAttr() {
         if (parsedDocument.isXhtml10() || parsedDocument.isXhtml11()) {
-            if (!parsedDocument.getAllXmlLangAttributeElements()
+            if (!parsedDocument.getAllXmlLangAttributeTags()
                     .containsAll(
-                    parsedDocument.getAllLangAttributeElements())) {
+                    parsedDocument.getAllLangAttributeTags())) {
                 assertions.add(new Assertion(
                         "rep_lang_missing_xml_attr",
                         parsedDocument.isServedAsXml()
@@ -973,6 +988,9 @@ class Check {
     // "WARNING: are there non-NFC class or id names?"
     private void addAssertionRepLatinNonNfc() {
         if (!parsedDocument.getAllNonNfcClassIdNames().isEmpty()) {
+            List<String> contexts = new ArrayList<>();
+            contexts.addAll(parsedDocument.getAllNonNfcClassIdNames());
+            contexts.addAll(parsedDocument.getAllNonNfcClassIdTags());
             assertions.add(new Assertion(
                     "rep_latin_non_nfc",
                     Assertion.Level.WARNING,
@@ -980,25 +998,14 @@ class Check {
                     + " Normalization&nbsp;Form&nbsp;C",
                     "It is recommended to save all content as Unicode"
                     + " Normalization Form C (NFC).",
-                    new ArrayList<>(
-                    parsedDocument.getAllNonNfcClassIdNames())));
+                    contexts));
         }
     }
 
     // rep_markup_bdo_no_dir
     // "ERROR: <bdo> tag without dir"
     private void addAssertionRepMarkupBdoNoDir() {
-        boolean bdoTagWithoutDir = false;
-        int i = 0;
-        Elements allBdoElements =
-                parsedDocument.getDocument().getElementsByTag("bdo");
-        while (!bdoTagWithoutDir && i < allBdoElements.size()) {
-            if (!allBdoElements.get(i).hasAttr("dir")) {
-                bdoTagWithoutDir = true;
-            }
-            i++;
-        }
-        if (bdoTagWithoutDir) {
+        if (!parsedDocument.getBdoTagsWithoutDir().isEmpty()) {
             assertions.add(new Assertion(
                     "rep_markup_bdo_no_dir",
                     Assertion.Level.INFO,
@@ -1006,7 +1013,7 @@ class Check {
                     + " <code class='kw'>dir</code> attribute",
                     "Add a <code class='kw'>dir</code> attribute to each <code"
                     + " class='kw'>bdo</code> tag.",
-                    new ArrayList<String>()));
+                    parsedDocument.getBdoTagsWithoutDir()));
         }
     }
 
@@ -1039,53 +1046,19 @@ class Check {
     // "INFO: <b> tags found in source"
     // "INFO: <i> tags found in source"
     private void addAssertionRepMarkupTagsNoClass() {
-        boolean bTagsNoClass = false;
-        boolean iTagsNoClass = false;
-        Elements allBElements =
-                parsedDocument.getDocument().getElementsByTag("b");
-        Elements allIElements =
-                parsedDocument.getDocument().getElementsByTag("i");
-        int i = 0;
-        while (!bTagsNoClass && i < allBElements.size()) {
-            if (!allBElements.get(i).hasAttr("class")) {
-                bTagsNoClass = true;
-            }
-            i++;
-        }
-        int j = 0;
-        while (!iTagsNoClass && j < allIElements.size()) {
-            if (!allIElements.get(j).hasAttr("class")) {
-                iTagsNoClass = true;
-            }
-            j++;
-        }
-        if (bTagsNoClass) {
+        if (!parsedDocument.getbITagsWithoutClass().isEmpty()) {
             assertions.add(new Assertion(
                     "rep_markup_tags_no_class",
                     Assertion.Level.INFO,
-                    "<code class='kw'>b</code> tags found with no class"
-                    + " attribute",
-                    "You should not use <code class='kw'>b</code> tags if"
-                    + " there is a more descriptive and relevant tag available."
-                    + " If you do use them, it is usually better to add class"
-                    + " attributes that describe the intended meaning of the"
-                    + " markup, so that you can distinguish one use from"
+                    "<code class='kw'>b</code> or <code class='kw'>i</code>"
+                    + " tags found with no class attribute",
+                    "You should not use <code>b</code> or <code>i</code> tags"
+                    + " if there is a more descriptive and relevant tag"
+                    + " available. If you do use them, it is usually better to"
+                    + " add class attributes that describe the intended meaning"
+                    + " of the markup, so that you can distinguish one use from"
                     + " another.",
-                    new ArrayList<String>()));
-        }
-        if (iTagsNoClass) {
-            assertions.add(new Assertion(
-                    "rep_markup_tags_no_class",
-                    Assertion.Level.INFO,
-                    "<code class='kw'>i</code> tags found with no class"
-                    + " attribute",
-                    "You should not use <code class='kw'>i</code> tags if"
-                    + " there is a more descriptive and relevant tag available."
-                    + " If you do use them, it is usually better to add class"
-                    + " attributes that describe the intended meaning of the"
-                    + " markup, so that you can distinguish one use from"
-                    + " another.",
-                    new ArrayList<String>()));
+                    parsedDocument.getbITagsWithoutClass()));
         }
     }
 }
