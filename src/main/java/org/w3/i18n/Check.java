@@ -124,11 +124,9 @@ class Check {
 
     private void addAssertionDtd() {
         if (parsedDocument.getDoctypeDeclaration() != null) {
-            assertions.add(new Assertion(
-                    "dtd",
+            assertions.add(AssertionProvider.getForWith(
+                    "info_dtd",
                     Assertion.Level.INFO,
-                    "Document Type Definition (DTD/Doctype)",
-                    "",
                     Arrays.asList(
                     parsedDocument.getDoctypeDescription(),
                     parsedDocument.getDoctypeDeclaration())));
@@ -137,11 +135,9 @@ class Check {
 
     private void addAssertionCharsetBom() {
         if (parsedDocument.getByteOrderMark() != null) {
-            assertions.add(new Assertion(
-                    "charset_bom",
+            assertions.add(AssertionProvider.getForWith(
+                    "info_charset_bom",
                     Assertion.Level.INFO,
-                    "Byte order mark (BOM)",
-                    "",
                     Arrays.asList(
                     parsedDocument.getByteOrderMark().getCharsetName(),
                     parsedDocument.getByteOrderMark().toString())));
@@ -150,11 +146,9 @@ class Check {
 
     private void addAssertionCharsetXmlDeclaration() {
         if (parsedDocument.getCharsetXmlDeclaration() != null) {
-            assertions.add(new Assertion(
-                    "charset_xml",
+            assertions.add(AssertionProvider.getForWith(
+                    "info_charset_xml",
                     Assertion.Level.INFO,
-                    "Charset declaraction in <code>xml</code> tag",
-                    "",
                     Arrays.asList(
                     parsedDocument.getCharsetXmlDeclaration(),
                     parsedDocument.getXmlDeclaration())));
@@ -168,18 +162,26 @@ class Check {
                     : parsedDocument.getCharsetMetaDeclarations().entrySet()) {
                 contexts.add(entry.getKey());
                 contexts.addAll(entry.getValue());
+                assertions.add(AssertionProvider.getForWith(
+                        "info_charset_meta",
+                        Assertion.Level.INFO,
+                        contexts));
             }
-            assertions.add(new Assertion(
-                    "charset_meta",
+        }
+    }
+
+    private void addAssertionCharsetHttp() {
+        if (parsedDocument.getCharsetHttp() != null) {
+            assertions.add(AssertionProvider.getForWith(
+                    "info_charset_http",
                     Assertion.Level.INFO,
-                    "Charset declaration in a <code>meta</code> tag",
-                    "",
-                    contexts));
+                    Arrays.asList(
+                    parsedDocument.getCharsetHttp(),
+                    parsedDocument.getContentType())));
         }
     }
 
     private void addAssertionLangAttr() {
-        // TODO ignores either xml:lang or lang, whichever is first
         Set<String> langs = new TreeSet<>();
         if (parsedDocument.getOpeningHtmlTagLang() != null) {
             langs.add(parsedDocument.getOpeningHtmlTagLang());
@@ -190,35 +192,39 @@ class Check {
         if (!langs.isEmpty()) {
             List<String> contexts = new ArrayList<>(langs);
             contexts.add(parsedDocument.getOpeningHtmlTag());
-            assertions.add(new Assertion(
-                    "lang_attr_lang",
+            assertions.add(AssertionProvider.getForWith(
+                    "info_lang_attr_lang",
                     Assertion.Level.INFO,
-                    "Language code declaration in the opening <code>html</code>"
-                    + " tag",
-                    "",
                     contexts));
+        }
+    }
+
+    private void addAssertionLangHttp() {
+        if (parsedDocument.getContentLanguage() != null) {
+            assertions.add(AssertionProvider.getForWith(
+                    "info_lang_http",
+                    Assertion.Level.INFO,
+                    Arrays.asList(
+                    parsedDocument.getContentLanguage(),
+                    "Content-Language: "
+                    + parsedDocument.getContentLanguage())));
         }
     }
 
     private void addAssertionLangMeta() {
         if (parsedDocument.getLangMeta() != null) {
-            assertions.add(new Assertion(
-                    "lang_meta",
+            assertions.add(AssertionProvider.getForWith(
+                    "info_lang_meta",
                     Assertion.Level.INFO,
-                    "Language code declaration in <code>meta</code> tag",
-                    "",
                     Arrays.asList(parsedDocument.getLangMeta())));
         }
     }
 
     private void addAssertionDirHtml() {
         if (parsedDocument.getDefaultDir() != null) {
-            assertions.add(new Assertion(
-                    "dir_default",
+            assertions.add(AssertionProvider.getForWith(
+                    "info_dir_default",
                     Assertion.Level.INFO,
-                    "Default text-direction declaration (in the opening"
-                    + " <code>html</code> tag)",
-                    "",
                     Arrays.asList(
                     parsedDocument.getDefaultDir(),
                     parsedDocument.getOpeningHtmlTag())));
@@ -227,10 +233,9 @@ class Check {
 
     private void addAssertionClassID() {
         if (!parsedDocument.getAllNonNfcClassIdNames().isEmpty()) {
-            assertions.add(new Assertion(
-                    "class_id", Assertion.Level.INFO,
-                    "Non ascii or non NFC class or id names",
-                    "",
+            assertions.add(AssertionProvider.getForWith(
+                    "info_class_id",
+                    Assertion.Level.INFO,
                     new ArrayList<>(
                     parsedDocument.getAllNonNfcClassIdNames())));
         }
@@ -238,74 +243,43 @@ class Check {
 
     private void addAssertionMimetype() {
         if (parsedDocument.getContentType() != null) {
-            assertions.add(new Assertion(
-                    "mimetype",
+            assertions.add(AssertionProvider.getForWith(
+                    "info_mimetype",
                     Assertion.Level.INFO,
-                    "MIME type (HTTP Content-Type header)",
-                    "",
                     Arrays.asList(parsedDocument.getContentType())));
         }
     }
 
-    private void addAssertionCharsetHttp() {
-        if (parsedDocument.getCharsetHttp() != null) {
-            assertions.add(new Assertion(
-                    "charset_http",
-                    Assertion.Level.INFO,
-                    "Charset declaration in HTTP response header 'Content-Type'"
-                    + " header",
-                    "",
-                    Arrays.asList(
-                    parsedDocument.getCharsetHttp(),
-                    "Content-Type: " + parsedDocument.getContentType())));
-        }
-    }
-
     private void addAssertionRequestHeaders() {
-        // Find relevant headers.
         /*
          * TODO: Currently there are never any request headers because
          * async-http-client doesn't use any by default.
          */
+        // Aggregate desired request headers.
         Map<String, List<String>> headers =
                 parsedDocument.getDocumentResource().getHeaders();
         String[] desiredHeaders = {
             "Accept-Language",
             "Accept-Charset"
         };
-        List<String> result = new ArrayList<>();
-        for (String header : desiredHeaders) {
-            if (headers.containsKey(header)) {
+        List<String> contexts = new ArrayList<>();
+        for (String headerName : desiredHeaders) {
+            if (headers.containsKey(headerName)) {
+                /* Build a string representation of the header by appending the
+                 * header contents to the header name. */
                 StringBuilder sb = new StringBuilder();
-                sb.append(header).append(": ");
-                for (String contents : headers.get(header)) {
-                    sb.append(contents);
+                sb.append(headerName).append(": ");
+                for (String headerContents : headers.get(headerName)) {
+                    sb.append(headerContents);
                 }
-                result.add(sb.toString());
+                contexts.add(sb.toString());
             }
         }
-        if (!result.isEmpty()) {
-            assertions.add(new Assertion(
-                    "request_headers",
+        if (!contexts.isEmpty()) {
+            assertions.add(AssertionProvider.getForWith(
+                    "info_request_headers",
                     Assertion.Level.INFO,
-                    "HTTP request headers",
-                    "",
-                    result));
-        }
-    }
-
-    private void addAssertionLangHttp() {
-        if (parsedDocument.getContentLanguage() != null) {
-            assertions.add(new Assertion(
-                    "lang_http",
-                    Assertion.Level.INFO,
-                    "Language code declaration in HTTP response header"
-                    + " 'Content-Language'",
-                    "",
-                    Arrays.asList(
-                    parsedDocument.getContentLanguage(),
-                    "Content-Language: "
-                    + parsedDocument.getContentLanguage())));
+                    contexts));
         }
     }
 
