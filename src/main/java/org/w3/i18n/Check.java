@@ -22,8 +22,9 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- * A {@code Check} object represents a stateful process of performing i18n
- * checks on a {@code DocumentResource}.
+ * A {@code Check} object represents the process of performing an i18n check on
+ * a {@link ParsedDocument}. The results of a check are given as a {@code List}
+ * of {@link Assertion}, accessed using the {@link #getAssertions()} method.
  *
  * @author Joseph J Short
  */
@@ -32,13 +33,23 @@ class Check {
     private final ParsedDocument parsedDocument;
     private final List<Assertion> assertions;
 
+    /**
+     * Creates a {@code Check} object which immediately checks the i18n details
+     * of the given {@link ParsedDocument}, and places the results in to a
+     * {@code List} of {@link Assertion}. The results can be accessed via the
+     * {@link #getAssertions()} method.
+     *
+     * @param parsedDocument the {@link ParsedDocument} to check.
+     */
     public Check(ParsedDocument parsedDocument) {
+        if (parsedDocument == null) {
+            throw new NullPointerException("parsedDocument: " + parsedDocument);
+        }
         this.parsedDocument = parsedDocument;
         this.assertions = new ArrayList<>();
 
         // Check for a bad ParsedDocument.
-        // boolean hasResponseHeaders =
-        //        !parsedDocument.getDocumentResource().getHeaders().isEmpty();
+        // TODO: I think it might be more helpful to throw an exception. ~~~ Joe
         boolean hasDocumentBody = parsedDocument.getDocumentBody() != null
                 ? !parsedDocument.getDocumentBody().isEmpty()
                 : false;
@@ -55,6 +66,9 @@ class Check {
         }
     }
 
+    /**
+     * Calls all the 'addAssertionXYZ()' methods.
+     */
     private void check() {
         // Add information assertions.
         addAssertionDtd();
@@ -111,16 +125,28 @@ class Check {
         Collections.sort(assertions);
     }
 
+    /**
+     * Returns the {@link ParsedDocument} used to construct this instance.
+     *
+     * @return the {@link ParsedDocument} used to construct this instance.
+     */
     public ParsedDocument getParsedDocument() {
         return parsedDocument;
     }
 
+    /**
+     * Returns the results of the i18n check.
+     *
+     * @return the results of the i18n check.
+     */
     public List<Assertion> getAssertions() {
         return assertions;
     }
 
-    /* Document Type Declaration (DOCTYPE). Context has a DOCTYPE classification
-     * (e.g. "XHTML 1.1") and the original '!DOCTYPE' tag. */
+    /**
+     * Document Type Declaration (DOCTYPE). Context has a DOCTYPE classification
+     * (e.g. "XHTML 1.1") and the original '!DOCTYPE' tag.
+     */
     private void addAssertionDtd() {
         if (parsedDocument.getDoctypeTag() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -132,8 +158,10 @@ class Check {
         }
     }
 
-    /* Charset from Byte Order Mark (BOM). Context has the name of the charset
-     * and the name of the BOM. */
+    /**
+     * Charset from Byte Order Mark (BOM). Context has the name of the charset
+     * and the name of the BOM.
+     */
     private void addAssertionCharsetBom() {
         if (parsedDocument.getByteOrderMark() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -145,8 +173,10 @@ class Check {
         }
     }
 
-    /* Charset from XML declaration ('?xml' tag at the start of the document).
-     * Context has the name of the character encoding and the orginal tag. */
+    /**
+     * Charset from XML declaration ('?xml' tag at the start of the document).
+     * Context has the name of the character encoding and the original tag.
+     */
     private void addAssertionCharsetXmlDeclaration() {
         if (parsedDocument.getCharsetXmlDeclaration() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -158,9 +188,11 @@ class Check {
         }
     }
 
-    /* Charset(s) from 'meta' tags (e.g. "<meta charset="utf-8">"). Context has
+    /**
+     * Charset(s) from 'meta' tags (e.g. "<meta charset="utf-8">"). Context has
      * a list of charset names followed by a list of corresponding 'meta' tags.
-     * Ideally there should be just one such tag in the document. */
+     * Ideally there should be just one such tag in the document.
+     */
     private void addAssertionCharsetMeta() {
         if (!parsedDocument.getCharsetMetaTags().isEmpty()) {
             ArrayList<String> contexts = new ArrayList<>();
@@ -176,9 +208,11 @@ class Check {
         }
     }
 
-    /* Charset from 'Content-Type' HTTP response header. Context has the charset
+    /**
+     * Charset from 'Content-Type' HTTP response header. Context has the charset
      * name and the header verbatim (e.g. "Content-Type: text/html;
-     * charset=UTF-8"). */
+     * charset=UTF-8").
+     */
     private void addAssertionCharsetHttp() {
         if (parsedDocument.getCharsetHttp() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -190,8 +224,10 @@ class Check {
         }
     }
 
-    /* Language from a 'lang' and/or 'xml:lang' attribute in opening 'html' tag.
-     * Context has the value of the attributes and the original 'html' tag. */
+    /**
+     * Language from a 'lang' and/or 'xml:lang' attribute in opening 'html' tag.
+     * Context has the value of the attributes and the original 'html' tag.
+     */
     private void addAssertionLangAttr() {
         // Only distinct values of the two attributes are added to the context.
         Set<String> langs = new TreeSet<>();
@@ -211,9 +247,11 @@ class Check {
         }
     }
 
-    /* Language from the 'Content-Language' HTTP response header. Context has
+    /**
+     * Language from the 'Content-Language' HTTP response header. Context has
      * the value of the header (should be a language code) and the header
-     * verbatim (e.g. "Content-Language: en"). */
+     * verbatim (e.g. "Content-Language: en").
+     */
     private void addAssertionLangHttp() {
         if (parsedDocument.getContentLanguage() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -226,10 +264,12 @@ class Check {
         }
     }
 
-    /* Language from a 'meta' tag with a 'http-equiv' attribute set to
+    /**
+     * Language from a 'meta' tag with a 'http-equiv' attribute set to
      * 'Content-Language'. Context has the value of the 'content' attribute
-     * (should be a language code) and the original tag (e.g. "<meta 
-     * http-equiv="Content-Language" value="de">"). */
+     * (should be a language code) and the original tag (e.g. "<meta
+     * http-equiv="Content-Language" value="de">").
+     */
     private void addAssertionLangMeta() {
         if (parsedDocument.getLangMeta() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -239,9 +279,11 @@ class Check {
         }
     }
 
-    /* Default text-direction given by 'dir' attribute in the opening 'html'
+    /**
+     * Default text-direction given by 'dir' attribute in the opening 'html'
      * tag. Context has the value of the attribute (should be 'ltr', 'rtl', or
-     * 'auto') and the opening 'html' tag. */
+     * 'auto') and the opening 'html' tag.
+     */
     private void addAssertionDirHtml() {
         if (parsedDocument.getDefaultDir() != null) {
             assertions.add(AssertionProvider.getForWith(
@@ -253,9 +295,11 @@ class Check {
         }
     }
 
-    /* Class or id names used in the document that are non-NFC (a Unicode
+    /**
+     * Class or id names used in the document that are non-NFC (a Unicode
      * normalisation form) or non-ASCII. Context has a list of the names
-     * followed by a list of the original opening tags. */
+     * followed by a list of the original opening tags.
+     */
     private void addAssertionClassID() {
         if (!parsedDocument.getAllNonNfcClassIdNames().isEmpty()) {
             assertions.add(AssertionProvider.getForWith(
@@ -266,21 +310,24 @@ class Check {
         }
     }
 
-    /* Mimetype (value of the 'Content-Type' HTTP response header. Context has
-     * the header verbatim. */
+    /**
+     * Mimetype given by of the 'Content-Type' HTTP response header. Context has
+     * the value of the header.
+     */
     private void addAssertionMimetype() {
         if (parsedDocument.getContentType() != null) {
             assertions.add(AssertionProvider.getForWith(
                     "info_mimetype",
                     Assertion.Level.INFO,
-                    Arrays.asList(
-                    "Content-Type: " + parsedDocument.getContentType())));
+                    Arrays.asList(parsedDocument.getContentType())));
         }
     }
 
-    /* HTTP request headers sent when retrieving a remote document. Context has
+    /**
+     * HTTP request headers sent when retrieving a remote document. Context has
      * the 'Accept-Language' and 'Accept-Charset' headers verbatim. (These are
-     * the only two headers which might affect the i18n of the response.) */
+     * the only two headers which might affect the i18n of the response.)
+     */
     private void addAssertionRequestHeaders() {
         /* TODO: Currently there are never any request headers because
          * async-http-client doesn't use any by default. */
@@ -312,38 +359,40 @@ class Check {
         }
     }
 
-    /* CHARSET REPORT: Document has a 'meta' tag with a charset declaration 
-     * outside of the firs 1024 byte in the document. */
+    /**
+     * Charset report: Document has a 'meta' tag with a charset declaration
+     * outside of the first 1024 byte in the document. Context has a list of the
+     * offending 'meta' tags verbatim.
+     */
     private void addAssertionRepCharset1024Limit() {
         if (parsedDocument.isHtml5()
                 && !parsedDocument.getCharsetMetaTagsOutside1024().isEmpty()) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_1024_limit",
                     Assertion.Level.ERROR,
-                    "Character encoding declaration in a <code"
-                    + " class='kw'>meta</code> tag not within 1024 bytes of"
-                    + " the file start",
-                    "Move the character encoding declaration nearer to the"
-                    + " top of the page. Usually it is best to make it the"
-                    + " first thing in the head element.",
                     parsedDocument.getCharsetMetaTagsOutside1024()));
-
         }
     }
 
-    // rep_charset_bogus_utf16 (ERROR)
-    // "CHARSET REPORT: UTF-16 encoding declaration in a non-UTF-16 document"
+    /**
+     * Charset report: UTF-16 encoding declaration in a non-UTF-16 document.
+     * Context has a list of offending meta tags verbatim.
+     */
     private void addAssertionRepCharsetBogusUtf16() {
-        if (parsedDocument.getCharsetMetaTags()
-                .get("utf-16") != null && !parsedDocument.isUtf16()) {
-            assertions.add(new Assertion(
-                    "rep_charset_bogus_utf16",
-                    Assertion.Level.ERROR,
-                    "UTF-16 encoding declaration in a non-UTF-16 document",
-                    "Change the encoding declaration to reflect the actual"
-                    + " encoding of the page.",
-                    new ArrayList<>(parsedDocument.getCharsetMetaTags()
-                    .get("utf-16"))));
+        if (!parsedDocument.isUtf16()) {
+            List<String> contexts = new ArrayList<>();
+            for (Map.Entry<String, List<String>> entry
+                    : parsedDocument.getCharsetMetaTags().entrySet()) {
+                if (entry.getKey().toUpperCase().matches(".*UTF-16.*")) {
+                    contexts.addAll(entry.getValue());
+                }
+            }
+            if (!contexts.isEmpty()) {
+                assertions.add(AssertionProvider.getForWith(
+                        "rep_charset_bogus_utf16",
+                        Assertion.Level.ERROR,
+                        contexts));
+            }
         }
     }
 
@@ -399,8 +448,8 @@ class Check {
                     "rep_charset_charset_attr",
                     parsedDocument.isHtml5()
                     ? Assertion.Level.ERROR : Assertion.Level.WARNING,
-                    "<code class='kw'>charset</code> attribute used on <code"
-                    + " class='kw'>a</code> or <code class='kw'>link</code>"
+                    "<code>charset</code> attribute used on <code"
+                    + ">a</code> or <code>link</code>"
                     + " elements",
                     "Remove the charset attribute. If pointing to a page that"
                     + " is under your control, ensure that any appropriate"
@@ -448,19 +497,19 @@ class Check {
                 assertions.add(new Assertion(
                         "rep_charset_incorrect_use_meta",
                         Assertion.Level.ERROR,
-                        "Incorrect use of <code class='kw'>meta</code>"
+                        "Incorrect use of <code>meta</code>"
                         + " encoding declarations",
                         "Add an XML declaration with encoding information,"
                         + " or change the character encoding for this page"
                         + " to UTF-8. If this page is never parsed as HTML,"
-                        + " you can remove the <code class='kw'>meta</code>"
+                        + " you can remove the <code>meta</code>"
                         + " tag.",
                         contexts));
             } else {
                 assertions.add(new Assertion(
                         "rep_charset_incorrect_use_meta",
                         Assertion.Level.WARNING,
-                        "Incorrect use of <code class='kw'>meta</code>"
+                        "Incorrect use of <code>meta</code>"
                         + " encoding declarations",
                         "There is no problem for this XHTML document as"
                         + " long as it is being served as HTML (text/html)."
@@ -502,13 +551,13 @@ class Check {
             assertions.add(new Assertion(
                     "rep_charset_meta_charset_invalid",
                     Assertion.Level.WARNING,
-                    "A <code class='kw'>meta</code> tag with a <code"
-                    + " class='kw'>charset</code> attribute will cause"
+                    "A <code>meta</code> tag with a <code"
+                    + ">charset</code> attribute will cause"
                     + " validation to fail",
                     "If you want this page to be valid HTML, replace the <code"
-                    + " class='kw'>charset</code> attribute with <code"
-                    + " class='kw'>http-equiv</code> and <code"
-                    + " class='kw'>content</code> attributes, eg."
+                    + ">charset</code> attribute with <code"
+                    + ">http-equiv</code> and <code"
+                    + ">content</code> attributes, eg."
                     + " <code>&lt;meta http-equiv='Content-Type'"
                     + " content='text/html; charset=utf-8'&gt;</code>.",
                     contexts));
@@ -528,11 +577,11 @@ class Check {
             assertions.add(new Assertion(
                     "rep_charset_meta_ineffective",
                     Assertion.Level.INFO,
-                    "<code class='kw'>meta</code> encoding declarations don't"
+                    "<code>meta</code> encoding declarations don't"
                     + " work with XML",
                     "Unless you sometimes serve this page as <code"
-                    + " class='kw'>text/html</code>, remove the <code"
-                    + " class='kw'>meta</code> tag and ensure you have an XML"
+                    + ">text/html</code>, remove the <code"
+                    + ">meta</code> tag and ensure you have an XML"
                     + " declaration with encoding information.",
                     contexts));
         }
@@ -551,9 +600,9 @@ class Check {
                     "rep_charset_multiple_meta",
                     Assertion.Level.ERROR,
                     "Multiple encoding declarations using the <code"
-                    + " class='kw'>meta</code> tag",
+                    + ">meta</code> tag",
                     "Edit the markup to remove all but one <code"
-                    + " class='kw'>meta</code> element.",
+                    + ">meta</code> element.",
                     contexts));
         }
     }
@@ -573,11 +622,11 @@ class Check {
                     "rep_charset_no_effective_charset",
                     Assertion.Level.WARNING,
                     "No effective character encoding information",
-                    "Add a <code class='kw'>meta</code> element to indicate"
+                    "Add a <code>meta</code> element to indicate"
                     + " the character encoding of the page. You could also"
                     + " declare the encoding in the HTTP header, but it is"
                     + " recommended that you always use a <code"
-                    + " class='kw'>meta</code> element too.",
+                    + ">meta</code> element too.",
                     new ArrayList<String>()));
         }
     }
@@ -640,7 +689,7 @@ class Check {
                         "rep_charset_no_visible_charset",
                         Assertion.Level.WARNING,
                         "No visible in-document encoding declared",
-                        "Add a <code class='kw'>meta</code> tag or XML"
+                        "Add a <code>meta</code> tag or XML"
                         + " declaration, as appropriate, to your page to"
                         + " indicate the character encoding used.",
                         new ArrayList<String>()));
@@ -685,13 +734,13 @@ class Check {
                 assertions.add(new Assertion(
                         "rep_charset_pragma",
                         Assertion.Level.INFO,
-                        "<code class='kw'>meta</code> character encoding"
+                        "<code>meta</code> character encoding"
                         + " declaration uses <code"
-                        + " class='kw'>http-equiv</code>",
-                        "Replace the <code class='kw'>http-equiv</code> and"
-                        + " <code class='kw'>content</code> attributes in your"
-                        + " <code class='kw'>meta</code> tag with a <code"
-                        + " class='kw'>charset</code> attribute.",
+                        + ">http-equiv</code>",
+                        "Replace the <code>http-equiv</code> and"
+                        + " <code>content</code> attributes in your"
+                        + " <code>meta</code> tag with a <code"
+                        + ">charset</code> attribute.",
                         contexts));
             }
         }
@@ -707,7 +756,7 @@ class Check {
                     Assertion.Level.ERROR,
                     "Meta character encoding declaration used in UTF-16"
                     + " page",
-                    "Remove the <code class='kw'>meta</code> encoding"
+                    "Remove the <code>meta</code> encoding"
                     + " declaration.",
                     parsedDocument.getCharsetMetaTags().get("utf-16")));
         }
@@ -761,7 +810,7 @@ class Check {
                         Assertion.Level.ERROR,
                         "XML declaration used",
                         "Remove the XML declaration from your page. Use a <code"
-                        + " class='kw'>meta</code> element instead to declare"
+                        + ">meta</code> element instead to declare"
                         + " the character encoding of the page.",
                         Arrays.asList(parsedDocument.getXmlDeclaration())));
             } else if (parsedDocument.isXhtml10()
@@ -790,8 +839,8 @@ class Check {
             assertions.add(new Assertion(
                     "rep_lang_conflict",
                     Assertion.Level.ERROR,
-                    "A <code class='kw'>lang</code> attribute value did not"
-                    + " match an <code class='kw'>xml:lang</code> value when"
+                    "A <code>lang</code> attribute value did not"
+                    + " match an <code>xml:lang</code> value when"
                     + " they appeared together on the same tag.",
                     "Change one of the values in each tag by editing the"
                     + " markup",
@@ -808,11 +857,11 @@ class Check {
                     "rep_lang_content_lang_meta",
                     parsedDocument.isHtml5()
                     ? Assertion.Level.ERROR : Assertion.Level.WARNING,
-                    "Content-Language <code class='kw'>meta</code> element used"
+                    "Content-Language <code>meta</code> element used"
                     + " to set the default document language",
                     "Remove the Content-Language meta element, and ensure that"
                     + " you have used an attribute on the <code"
-                    + " class='kw'>html</code> tag to specify the default"
+                    + ">html</code> tag to specify the default"
                     + " language of the page.",
                     Arrays.asList(parsedDocument.getLangMeta())));
         }
@@ -828,12 +877,12 @@ class Check {
                     "rep_lang_html_no_effective_lang",
                     Assertion.Level.WARNING,
                     "The language declaration in the <code"
-                    + " class='kw'>html</code> tag will have no effect ",
+                    + ">html</code> tag will have no effect ",
                     "Since this page is served as XML, use the <code"
-                    + " class='kw'>xml:lang</code> attribute instead of a"
-                    + " <code class='kw'>lang</code> attribute. If there is a"
+                    + ">xml:lang</code> attribute instead of a"
+                    + " <code>lang</code> attribute. If there is a"
                     + " chance that this page will also be served as <code"
-                    + " class='kw'>text/html</code> in some circumstances, use"
+                    + ">text/html</code> in some circumstances, use"
                     + " both.",
                     Arrays.asList(parsedDocument.getOpeningHtmlTag())));
         } else if (!parsedDocument.isServedAsXml()
@@ -844,18 +893,18 @@ class Check {
                     || (parsedDocument.isXhtml10()
                     && !parsedDocument.isServedAsXml())
                     ? "Since this page is served as HTML, use the <code"
-                    + " class='kw'>lang</code> attribute. If there is a chance"
+                    + ">lang</code> attribute. If there is a chance"
                     + " that the same page will also be processed by an XML"
-                    + " parser, use both the <code class='kw'>lang</code>"
-                    + " attribute and the <code class='kw'>xml:lang</code>"
+                    + " parser, use both the <code>lang</code>"
+                    + " attribute and the <code>xml:lang</code>"
                     + " attribute."
                     : "Since this page is served as HTML, use the <code"
-                    + " class='kw'>lang</code> attribute.";
+                    + ">lang</code> attribute.";
             assertions.add(new Assertion(
                     "rep_lang_html_no_effective_lang",
                     Assertion.Level.WARNING,
                     "The language declaration in the <code"
-                    + " class='kw'>html</code> tag will have no effect ",
+                    + ">html</code> tag will have no effect ",
                     description,
                     Arrays.asList(parsedDocument.getOpeningHtmlTag())));
         }
@@ -898,12 +947,12 @@ class Check {
                         "rep_lang_missing_html_attr",
                         parsedDocument.isHtml5()
                         ? Assertion.Level.ERROR : Assertion.Level.WARNING,
-                        "A tag uses an <code class='kw'>xml:lang</code>"
+                        "A tag uses an <code>xml:lang</code>"
                         + " attribute without an associated <code"
-                        + " class='kw'>lang</code> attribute",
-                        "Add a <code class='kw'>lang</code> attribute to each"
+                        + ">lang</code> attribute",
+                        "Add a <code>lang</code> attribute to each"
                         + " of the above tags, with the same value as the <code"
-                        + " class='kw'>xml:lang</code> attribute.",
+                        + ">xml:lang</code> attribute.",
                         new ArrayList<String>()));
             }
         }
@@ -921,12 +970,12 @@ class Check {
                         "rep_lang_missing_xml_attr",
                         parsedDocument.isServedAsXml()
                         ? Assertion.Level.ERROR : Assertion.Level.WARNING,
-                        "A tag uses a <code class='kw'>lang</code> attribute"
+                        "A tag uses a <code>lang</code> attribute"
                         + " without an associated <code"
-                        + " class='kw'>xml:lang</code> attribute",
-                        "Add an <code class='kw'>xml:lang</code> attribute to"
+                        + ">xml:lang</code> attribute",
+                        "Add an <code>xml:lang</code> attribute to"
                         + " each of the above tags, with the same value as the"
-                        + " <code class='kw'>lang</code> attribute.",
+                        + " <code>lang</code> attribute.",
                         new ArrayList<String>()));
             }
         }
@@ -939,26 +988,26 @@ class Check {
                 && parsedDocument.getOpeningHtmlTagXmlLang() == null) {
             String description =
                     parsedDocument.isHtml() || parsedDocument.isHtml5()
-                    ? "Add a <code class='kw'>lang</code> attribute that"
+                    ? "Add a <code>lang</code> attribute that"
                     + " indicates the default language of your page. Example:"
                     + " <code>lang='de'</code>"
                     : parsedDocument.isXhtml10()
                     && !parsedDocument.isServedAsXml()
                     ? "Since this is an XHTML page served as HTML, add both a"
-                    + " <code class='kw'>lang</code> attribute and an <code"
-                    + " class='kw'>xml:lang</code> attribute to the html tag to"
+                    + " <code>lang</code> attribute and an <code"
+                    + ">xml:lang</code> attribute to the html tag to"
                     + " indicate the default language of your page.  The <code"
-                    + " class='kw'>lang</code> attribute is understood by HTML"
+                    + ">lang</code> attribute is understood by HTML"
                     + " processors, but not by XML processors, and vice versa."
                     + " Example: <code>lang=&quot;de&quot;"
                     + " xml:lang=&quot;de&quot;</code>"
-                    : "Add an <code class='kw'>xml:lang</code> attribute that"
+                    : "Add an <code>xml:lang</code> attribute that"
                     + " indicates the default language of your page. Example:"
                     + " <code>xml:lang='de'</code>";
             assertions.add(new Assertion(
                     "rep_lang_no_lang_attr",
                     Assertion.Level.WARNING,
-                    "The <code class='kw'>html</code> tag has no"
+                    "The <code>html</code> tag has no"
                     + " language attribute",
                     description,
                     Arrays.asList(
@@ -975,11 +1024,11 @@ class Check {
             assertions.add(new Assertion(
                     "rep_lang_xml_attr_in_html",
                     Assertion.Level.ERROR,
-                    "This HTML file contains <code class='kw'>xml:lang</code>"
+                    "This HTML file contains <code>xml:lang</code>"
                     + " attributes",
-                    "Remove the <code class='kw'>xml:lang</code> attributes"
+                    "Remove the <code>xml:lang</code> attributes"
                     + " from the markup, replacing them, where appropriate,"
-                    + " with <code class='kw'>lang</code> attributes.",
+                    + " with <code>lang</code> attributes.",
                     new ArrayList<String>()));
         }
     }
@@ -1009,10 +1058,10 @@ class Check {
             assertions.add(new Assertion(
                     "rep_markup_bdo_no_dir",
                     Assertion.Level.INFO,
-                    "<code class='kw'>bdo</code> tags found with no"
-                    + " <code class='kw'>dir</code> attribute",
-                    "Add a <code class='kw'>dir</code> attribute to each <code"
-                    + " class='kw'>bdo</code> tag.",
+                    "<code>bdo</code> tags found with no"
+                    + " <code>dir</code> attribute",
+                    "Add a <code>dir</code> attribute to each <code"
+                    + ">bdo</code> tag.",
                     parsedDocument.getBdoTagsWithoutDir()));
         }
     }
@@ -1034,7 +1083,7 @@ class Check {
                 assertions.add(new Assertion(
                         "rep_markup_dir_incorrect",
                         Assertion.Level.ERROR,
-                        "Incorrect values used for <code class='kw'>dir</code>"
+                        "Incorrect values used for <code>dir</code>"
                         + " attribute",
                         "Correct the attribute values.",
                         new ArrayList<>(incorrectDirs)));
@@ -1050,7 +1099,7 @@ class Check {
             assertions.add(new Assertion(
                     "rep_markup_tags_no_class",
                     Assertion.Level.INFO,
-                    "<code class='kw'>b</code> or <code class='kw'>i</code>"
+                    "<code>b</code> or <code>i</code>"
                     + " tags found with no class attribute",
                     "You should not use <code>b</code> or <code>i</code> tags"
                     + " if there is a more descriptive and relevant tag"
