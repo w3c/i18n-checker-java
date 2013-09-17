@@ -12,8 +12,6 @@
  */
 package org.w3.i18n;
 
-import java.util.ArrayList;
-import java.util.Formatter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -23,15 +21,21 @@ import java.util.TreeSet;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3.i18n.Assertion.Level;
 
 /**
+ * Provides titles and descriptions for {@link Assertion}s when given a known id
+ * and {@code Level}. Backed by a properties file.
  *
  * @author Joseph J Short
  */
 class AssertionProvider {
 
     private static final Map<Key, Value> definitions;
+    private static final Logger logger =
+            LoggerFactory.getLogger(AssertionProvider.class);
 
     // Noninstantiable class.
     private AssertionProvider() {
@@ -40,20 +44,20 @@ class AssertionProvider {
     static {
         // Load and parse assertion.properties file.
         // TODO: move this constant to the configuration.
-        final String PROPERTIES_FILE = "assertions-EN.properties";
-        System.out.println(
-                "Reading assertion properties file: " + PROPERTIES_FILE);
+        final String DEFINITIONS_FILE = "assertions-EN.properties";
+        logger.info("Reading assertion definitions file: " + DEFINITIONS_FILE);
         Configuration configuration;
         try {
-            configuration = new PropertiesConfiguration(PROPERTIES_FILE);
+            configuration = new PropertiesConfiguration(DEFINITIONS_FILE);
         } catch (ConfigurationException ex) {
             throw new RuntimeException(
-                    "assertion properties file: " + PROPERTIES_FILE, ex);
+                    "assertion properties file: " + DEFINITIONS_FILE, ex);
         }
 
+        // Read the definitions.
         definitions = new TreeMap<>();
-
         interpretAssertionDefinitions(configuration);
+        logger.info("Found " + definitions.size() + " definition(s).");
     }
 
     private static void interpretAssertionDefinitions(
@@ -101,6 +105,7 @@ class AssertionProvider {
 
     private static void interpretAssertionDefinition(
             String prefix, Configuration configuration) {
+        // Retieve the required properties for the prefix.
         String titleProperty = configuration.containsKey(prefix + ".title")
                 ? configuration.getString(prefix + ".title") : null;
         String descriptionProperty = configuration.containsKey(
@@ -110,18 +115,30 @@ class AssertionProvider {
             throw new RuntimeException("Invalid assertion definition in"
                     + " configuration. Each definition should have a 'title'"
                     + " and 'description' property. Prefix: " + prefix
-                    + ", title property: \"" + titleProperty + 
-                    "\", description property: \"" + descriptionProperty 
+                    + ", title property: \"" + titleProperty
+                    + "\", description property: \"" + descriptionProperty
                     + "\", configuration: " + configuration);
         }
-        String title = titleProperty.trim();
-        String description = descriptionProperty.trim();
 
+        // Prepare definition details.
         String[] prefixSplit = prefix.split("\\.");
         String id = prefixSplit[0].trim();
         Level level = Level.valueOf(prefixSplit[1].trim());
+        String title = titleProperty.trim();
+        String description = descriptionProperty.trim();
 
-        definitions.put(new Key(id, level), new Value(title, description));
+        // Check for duplicate definition key.
+        Key key = new Key(id, level);
+        if (definitions.containsKey(key)) {
+            throw new RuntimeException("Duplicate assertion definition in"
+                    + " configuration. Prefix: " + prefix
+                    + ", existsing title property: \""
+                    + definitions.get(key).htmlTitle
+                    + ", current title property: \"" + title
+                    + "\", configuration: " + configuration);
+        }
+
+        definitions.put(key, new Value(title, description));
     }
 
     /**
