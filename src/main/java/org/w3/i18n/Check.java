@@ -460,7 +460,7 @@ class Check {
 
     /**
      * Charset report: Incorrect use of meta encoding declaration. Context has a
-     * verbatim list of all the meta tags that have a charset declaration.
+     * verbatim list of all the 'meta' tags that have a charset declaration.
      */
     private void addAssertionRepCharsetIncorrectUseMeta() {
         if (!parsedDocument.getCharsetMetaTags().isEmpty()
@@ -491,10 +491,11 @@ class Check {
         }
     }
 
-    // rep_charset_meta_charset_invalid (WARNING)
-    // "CHARSET REPORT: Meta charset tag will cause validation to fail"
+    /**
+     * Charset report: Meta charset tag will cause validation to fail. Context
+     * has a list of the problem 'meta' tags verbatim.
+     */
     private void addAssertionRepCharsetMetaCharsetInvalid() {
-
         List<String> contexts = new ArrayList<>();
         if (!parsedDocument.isHtml5()
                 && !parsedDocument.getCharsetMetaTags().isEmpty()) {
@@ -517,24 +518,18 @@ class Check {
                     .values()) {
                 contexts.addAll(list);
             }
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_meta_charset_invalid",
                     Assertion.Level.WARNING,
-                    "A <code>meta</code> tag with a <code"
-                    + ">charset</code> attribute will cause"
-                    + " validation to fail",
-                    "If you want this page to be valid HTML, replace the <code"
-                    + ">charset</code> attribute with <code"
-                    + ">http-equiv</code> and <code"
-                    + ">content</code> attributes, eg."
-                    + " <code>&lt;meta http-equiv='Content-Type'"
-                    + " content='text/html; charset=utf-8'&gt;</code>.",
                     contexts));
         }
     }
 
-    // rep_charset_meta_ineffective (INFO)
-    // "CHARSET REPORT: Meta encoding declarations don't work with XML"
+    /**
+     * Charset report: Meta encoding declarations don't work with XML. Context
+     * has a verbatim list of all the 'meta' tags that have a charset
+     * declaration.
+     */
     private void addAssertionRepCharsetMetaIneffective() {
         if (!parsedDocument.getCharsetMetaTags().isEmpty()
                 && parsedDocument.isServedAsXml()) {
@@ -543,21 +538,18 @@ class Check {
                     .values()) {
                 contexts.addAll(list);
             }
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_meta_ineffective",
                     Assertion.Level.INFO,
-                    "<code>meta</code> encoding declarations don't"
-                    + " work with XML",
-                    "Unless you sometimes serve this page as <code"
-                    + ">text/html</code>, remove the <code"
-                    + ">meta</code> tag and ensure you have an XML"
-                    + " declaration with encoding information.",
                     contexts));
         }
     }
 
-    // rep_charset_multiple_meta (ERROR)
-    // "CHARSET REPORT: Multiple encoding declarations using the meta tag"
+    /**
+     * Charset report: Multiple encoding declarations using the meta tag.
+     * Context has a verbatim list of all the 'meta' tags that have a charset
+     * declaration.
+     */
     private void addAssertionRepCharsetMultipleMeta() {
         if (parsedDocument.getCharsetMetaTags().size() > 1) {
             List<String> contexts = new ArrayList<>();
@@ -565,19 +557,17 @@ class Check {
                     .values()) {
                 contexts.addAll(list);
             }
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_multiple_meta",
                     Assertion.Level.ERROR,
-                    "Multiple encoding declarations using the <code"
-                    + ">meta</code> tag",
-                    "Edit the markup to remove all but one <code"
-                    + ">meta</code> element.",
                     contexts));
         }
     }
 
-    // rep_charset_no_effective_charset (WARNING)
-    // "CHARSET REPORT: No effective character encoding information"
+    /**
+     * Charset report: No effective character encoding information. Context is
+     * empty.
+     */
     private void addAssertionRepCharsetNoEffectiveCharset() {
         if (parsedDocument.getCharsetXmlDeclaration() != null
                 && parsedDocument.getCharsetHttp() == null
@@ -587,152 +577,138 @@ class Check {
                 || parsedDocument.isHtml5()
                 || (parsedDocument.isXhtml10()
                 && !parsedDocument.isServedAsXml()))) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_no_effective_charset",
                     Assertion.Level.WARNING,
-                    "No effective character encoding information",
-                    "Add a <code>meta</code> element to indicate"
-                    + " the character encoding of the page. You could also"
-                    + " declare the encoding in the HTTP header, but it is"
-                    + " recommended that you always use a <code"
-                    + ">meta</code> element too.",
                     new ArrayList<String>()));
         }
     }
 
-    // rep_charset_no_encoding_xml (WARNING)
-    // (See also 'rep_charset_none'.)
-    // CHARSET REPORT: "No character encoding information"
+    /**
+     * Charset report: No character encoding information. Context is empty. (NB:
+     * Similar to 'addAssertionRepCharsetNone()'.)
+     */
     private void addAssertionRepCharsetNoEncodingXml() {
         if (parsedDocument.getAllCharsetDeclarations().isEmpty()
                 && parsedDocument.isServedAsXml()) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_no_encoding_xml",
                     Assertion.Level.WARNING,
-                    "No in-document encoding declaration found",
-                    "Add information to indicate the character encoding of the"
-                    + " page inside the page itself.",
                     new ArrayList<String>()));
         }
     }
 
-    // rep_charset_no_in_doc (WARNING)
-    // "CHARSET REPORT: No charset declaration in the document"
+    /**
+     * Charset report: No charset declaration in the document. Context is empty.
+     */
     private void addAssertionRepCharsetNoInDoc() {
         if (parsedDocument.getInDocCharsetDeclarations().isEmpty()
                 && !parsedDocument.getAllCharsetDeclarations().isEmpty()) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_no_in_doc",
                     Assertion.Level.WARNING,
-                    "Encoding declared only in HTTP header",
-                    "Add information to indicate the character encoding of the"
-                    + " page inside the page itself.",
                     new ArrayList<String>()));
         }
     }
 
-    // rep_charset_no_utf8 (INFO)
-    // "CHARSET REPORT: Non-UTF8 character encoding declared"
+    /**
+     * Charset report: Non-UTF8 character encoding declared. Context has a list
+     * of the declared non-UTF8 charsets.
+     */
     private void addAssertionRepCharsetNoUtf8() {
         if (!parsedDocument.getNonUtf8CharsetDeclarations().isEmpty()) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_no_utf8",
                     Assertion.Level.INFO,
-                    "Non-UTF-8 character encoding declared",
-                    "Set your authoring tool to save your content as UTF-8, and"
-                    + " change the encoding declarations.",
-                    new ArrayList(
+                    /* TODO: This context would be more helpful if it also
+                     * provided the origins of the declarations. */
+                    new ArrayList<>(
                     parsedDocument.getNonUtf8CharsetDeclarations())));
         }
     }
 
-    // rep_charset_no_visible_charset (WARNING)
-    // "CHARSET REPORT: No visible in-document encoding specified"
+    /**
+     * Charset report: No visible in-document encoding specified. Context is
+     * empty.
+     */
     private void addAssertionRepCharsetNoVisibleCharset() {
         if (parsedDocument.getByteOrderMark() != null
                 && parsedDocument.getCharsetXmlDeclaration() == null
                 && parsedDocument.getCharsetMetaTags().isEmpty()) {
-            if (parsedDocument.getCharsetByteOrderMark()
-                    .equals("UTF-8")) {
-                assertions.add(new Assertion(
+            if (parsedDocument.getCharsetByteOrderMark().toUpperCase()
+                    .matches(".*UTF-8.*")) {
+                assertions.add(AssertionProvider.getForWith(
                         "rep_charset_no_visible_charset",
                         Assertion.Level.WARNING,
-                        "No visible in-document encoding declared",
-                        "Add a <code>meta</code> tag or XML"
-                        + " declaration, as appropriate, to your page to"
-                        + " indicate the character encoding used.",
                         new ArrayList<String>()));
             }
         }
     }
 
-    // rep_charset_none (ERROR)
-    // rep_charset_none (WARNING)
-    // (See also 'rep_charset_no_encoding_xml'.)
-    // CHARSET REPORT: "No character encoding information"
+    /**
+     * Charset report: No character encoding information. Context is empty. (NB:
+     * Similar to 'addAssertionRepCharsetNoEncodingXml()'.)
+     */
     private void addAssertionRepCharsetNone() {
         if (parsedDocument.getAllCharsetDeclarations().isEmpty()) {
             if (!parsedDocument.isServedAsXml()) {
-                Assertion.Level level = parsedDocument.isHtml5()
-                        ? Assertion.Level.ERROR : Assertion.Level.WARNING;
-                assertions.add(new Assertion(
+                assertions.add(AssertionProvider.getForWith(
                         "rep_charset_none",
-                        level,
-                        "No character encoding information",
-                        "Add information to indicate the character encoding of"
-                        + " the page.",
+                        parsedDocument.isHtml5()
+                        ? Assertion.Level.ERROR : Assertion.Level.WARNING,
                         new ArrayList<String>()));
             }
         }
     }
 
-    // rep_charset_pragma (INFO)
-    // "CHARSET REPORT: Meta charset declaration uses http-equiv"
+    /**
+     * Charset report: Meta charset declaration uses 'http-equiv'. Context has a
+     * list of the problem 'meta' tags verbatim.
+     */
     private void addAssertionRepCharsetPragma() {
         if (parsedDocument.isHtml5()) {
             List<String> contexts = new ArrayList<>();
             for (List<String> list : parsedDocument
                     .getCharsetMetaTags().values()) {
                 for (String context : list) {
-                    if (context.contains("http-equiv")) {
+                    if (context.toLowerCase().matches(".*http-equiv.*")) {
                         contexts.add(context);
                     }
                 }
             }
             if (!contexts.isEmpty()) {
-                assertions.add(new Assertion(
-                        "rep_charset_pragma",
-                        Assertion.Level.INFO,
-                        "<code>meta</code> character encoding"
-                        + " declaration uses <code"
-                        + ">http-equiv</code>",
-                        "Replace the <code>http-equiv</code> and"
-                        + " <code>content</code> attributes in your"
-                        + " <code>meta</code> tag with a <code"
-                        + ">charset</code> attribute.",
+                assertions.add(AssertionProvider.getForWith(
+                        "rep_charset_pragma", Assertion.Level.INFO, contexts));
+            }
+        }
+    }
+
+    /**
+     * Charset report: Meta character encoding declaration used in UTF-16 page.
+     * Context has a list of the problem meta tags verbatim.
+     */
+    private void addAssertionRepCharsetUtf16Meta() {
+        if (parsedDocument.isUtf16() && parsedDocument.isHtml5()) {
+            List<String> contexts = new ArrayList<>();
+            for (Map.Entry<String, List<String>> entry
+                    : parsedDocument.getCharsetMetaTags().entrySet()) {
+                if (entry.getKey().toUpperCase().matches(".*UTF-16.*")) {
+                    contexts.addAll(entry.getValue());
+                }
+            }
+            if (!contexts.isEmpty()) {
+                assertions.add(AssertionProvider.getForWith(
+                        "rep_charset_utf16_meta", Assertion.Level.ERROR,
                         contexts));
             }
         }
     }
 
-    // rep_charset_utf16_meta (ERROR)
-    // "CHARSET REPORT: Meta character encoding declaration used in UTF-16 page"
-    private void addAssertionRepCharsetUtf16Meta() {
-        if (parsedDocument.getCharsetMetaTags().containsKey("utf-16")
-                && parsedDocument.isUtf16() && parsedDocument.isHtml5()) {
-            assertions.add(new Assertion(
-                    "rep_charset_utf16_meta",
-                    Assertion.Level.ERROR,
-                    "Meta character encoding declaration used in UTF-16"
-                    + " page",
-                    "Remove the <code>meta</code> encoding"
-                    + " declaration.",
-                    parsedDocument.getCharsetMetaTags().get("utf-16")));
-        }
-    }
-
-    // rep_charset_utf16lebe (ERROR)
-    // "CHARSET REPORT: UTF-16LE or UTF-16BE found in a character encoding ..."
+    /**
+     * Charset report: UTF-16LE or UTF-16BE found in a character encoding
+     * declaration. Context has a list of the charset declarations in their
+     * original contexts.
+     */
     private void addAssertionRepCharsetUtf16lebe() {
         Map<String, List<String>> nonBomCharsets = new TreeMap<>();
         List<String> contexts = new ArrayList<>();
@@ -747,57 +723,46 @@ class Check {
         nonBomCharsets.putAll(parsedDocument.getCharsetMetaTags());
         for (Map.Entry<String, List<String>> entry
                 : nonBomCharsets.entrySet()) {
-            if (entry.getKey().matches("utf-16 ?\\(?[bl]e\\)?")) {
+            if (entry.getKey().toUpperCase()
+                    .matches(".*UTF-16[\\s]*-?[\\s]*\\(?[BL]E\\)?.*")) {
                 for (List<String> list : nonBomCharsets.values()) {
                     contexts.addAll(list);
                 }
             }
         }
         if (!contexts.isEmpty()) {
-            assertions.add(new Assertion(
-                    "rep_charset_utf16lebe",
-                    Assertion.Level.ERROR,
-                    "UTF-16LE or UTF-16BE found in a character encoding"
-                    + " declaration",
-                    "Ensure that the page starts with a byte-order mark (BOM)"
-                    + " and change the encoding declaration(s) to"
-                    + " \\\"UTF-16\\\".",
-                    contexts));
+            assertions.add(AssertionProvider.getForWith(
+                    "rep_charset_utf16lebe", Assertion.Level.ERROR, contexts));
         }
     }
 
-    // rep_charset_xml_decl_used (ERROR)
-    // rep_charset_xml_decl_used (WARNING)
-    // "CHARSET REPORT: XML Declaration used"
+    /**
+     * Charset report: XML Declaration used. Context has the original XML
+     * declaration ('?xml' tag) verbatim.
+     */
     private void addAssertionRepCharsetXmlDeclUsed() {
         if (parsedDocument.getCharsetXmlDeclaration() != null) {
             if (parsedDocument.isHtml()
                     || parsedDocument.isHtml5()
                     && !parsedDocument.isServedAsXml()) {
-                assertions.add(new Assertion(
-                        "rep_charset_xml_decl_used",
-                        Assertion.Level.ERROR,
-                        "XML declaration used",
-                        "Remove the XML declaration from your page. Use a <code"
-                        + ">meta</code> element instead to declare"
-                        + " the character encoding of the page.",
+                assertions.add(AssertionProvider.getForWith(
+                        "rep_charset_xml_decl_used", Assertion.Level.ERROR,
                         Arrays.asList(parsedDocument.getXmlDeclaration())));
             } else if (parsedDocument.isXhtml10()
                     && !parsedDocument.isServedAsXml()) {
-                assertions.add(new Assertion(
-                        "rep_charset_xml_decl_used",
-                        Assertion.Level.WARNING,
-                        "XML declaration used",
-                        "Since you are using XHTML 1.x but serving it as"
-                        + " text/html, use UTF-8 for your page and remove the"
-                        + " XML declaration.",
+                assertions.add(AssertionProvider.getForWith(
+                        "rep_charset_xml_decl_used", Assertion.Level.WARNING,
                         Arrays.asList(parsedDocument.getXmlDeclaration())));
             }
         }
     }
 
-    // rep_lang_conflict (ERROR)
-    // "ERROR: A lang attribute value did not match an xml:lang value when ..."
+    /**
+     * Report languages: A 'lang' attribute value did not match an 'xml:lang'
+     * value when they appeared together on the same tag. Context has a list of
+     * the problem tags verbatim, each accompanied by the conflicting language
+     * declarations.
+     */
     private void addAssertionRepLangConflict() {
         if (!parsedDocument.getAllConflictingLangAttributes().isEmpty()) {
             ArrayList<String> contexts = new ArrayList<>();
@@ -805,238 +770,184 @@ class Check {
                     : parsedDocument.getAllConflictingLangAttributes()) {
                 contexts.add(conflict.toString());
             }
-            assertions.add(new Assertion(
-                    "rep_lang_conflict",
-                    Assertion.Level.ERROR,
-                    "A <code>lang</code> attribute value did not"
-                    + " match an <code>xml:lang</code> value when"
-                    + " they appeared together on the same tag.",
-                    "Change one of the values in each tag by editing the"
-                    + " markup",
-                    contexts));
+            assertions.add(AssertionProvider.getForWith(
+                    "rep_lang_conflict", Assertion.Level.ERROR, contexts));
         }
     }
 
-    // rep_lang_content_lang_meta (ERROR)
-    // rep_lang_content_lang_meta (WARNING)
-    // "LANG REPORT: Content-Language meta element"
+    /**
+     * Report languages: Content-Language meta element. Context has the 'meta'
+     * tag verbatim.
+     */
     private void addAssertionRepLangContentLangMeta() {
         if (parsedDocument.getLangMeta() != null) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_lang_content_lang_meta",
                     parsedDocument.isHtml5()
                     ? Assertion.Level.ERROR : Assertion.Level.WARNING,
-                    "Content-Language <code>meta</code> element used"
-                    + " to set the default document language",
-                    "Remove the Content-Language meta element, and ensure that"
-                    + " you have used an attribute on the <code"
-                    + ">html</code> tag to specify the default"
-                    + " language of the page.",
                     Arrays.asList(parsedDocument.getLangMeta())));
         }
     }
 
-    // rep_lang_html_no_effective_lang (WARNING)
-    // "WARNING: The html tag has no effective language declaration"
+    /**
+     * Report languages: The 'html' tag has no effective language declaration.
+     * Context has the opening 'html' tag verbatim.
+     */
     private void addAssertionRepLangHtmlNoEffectiveLang() {
         if (parsedDocument.isServedAsXml()
                 && parsedDocument.getOpeningHtmlTagLang() != null
                 && parsedDocument.getOpeningHtmlTagXmlLang() == null) {
-            assertions.add(new Assertion(
-                    "rep_lang_html_no_effective_lang",
+            assertions.add(AssertionProvider.getForWith(
+                    "rep_lang_html_no_effective_lang_xml",
                     Assertion.Level.WARNING,
-                    "The language declaration in the <code"
-                    + ">html</code> tag will have no effect ",
-                    "Since this page is served as XML, use the <code"
-                    + ">xml:lang</code> attribute instead of a"
-                    + " <code>lang</code> attribute. If there is a"
-                    + " chance that this page will also be served as <code"
-                    + ">text/html</code> in some circumstances, use"
-                    + " both.",
                     Arrays.asList(parsedDocument.getOpeningHtmlTag())));
         } else if (!parsedDocument.isServedAsXml()
                 && parsedDocument.getOpeningHtmlTagLang() == null
                 && parsedDocument.getOpeningHtmlTagXmlLang() != null) {
-            String description = parsedDocument.isHtml()
+            if (parsedDocument.isHtml()
                     || parsedDocument.isHtml5()
                     || (parsedDocument.isXhtml10()
-                    && !parsedDocument.isServedAsXml())
-                    ? "Since this page is served as HTML, use the <code"
-                    + ">lang</code> attribute. If there is a chance"
-                    + " that the same page will also be processed by an XML"
-                    + " parser, use both the <code>lang</code>"
-                    + " attribute and the <code>xml:lang</code>"
-                    + " attribute."
-                    : "Since this page is served as HTML, use the <code"
-                    + ">lang</code> attribute.";
-            assertions.add(new Assertion(
-                    "rep_lang_html_no_effective_lang",
-                    Assertion.Level.WARNING,
-                    "The language declaration in the <code"
-                    + ">html</code> tag will have no effect ",
-                    description,
-                    Arrays.asList(parsedDocument.getOpeningHtmlTag())));
+                    && !parsedDocument.isServedAsXml())) {
+                assertions.add(AssertionProvider.getForWith(
+                        "rep_lang_html_no_effective_lang_html",
+                        Assertion.Level.WARNING,
+                        Arrays.asList(parsedDocument.getOpeningHtmlTag())));
+            } else {
+                assertions.add(AssertionProvider.getForWith(
+                        "rep_lang_html_no_effective_lang",
+                        Assertion.Level.WARNING,
+                        Arrays.asList(parsedDocument.getOpeningHtmlTag())));
+            }
         }
     }
 
-    // rep_lang_malformed_attr (ERROR)
-    // "WARNING: A language attribute value was incorrectly formed."
+    /**
+     * Report languages: A language attribute value was incorrectly formed.
+     * Context has the bad values verbatim.
+     */
     private void addAssertionRepLangMalformedAttr() {
         Set<String> attrs = new TreeSet<>();
         attrs.addAll(parsedDocument.getAllLangAttributes());
         attrs.addAll(parsedDocument.getAllXmlLangAttributes());
-        Set<String> malformedAttrs = new TreeSet<>();
+        Set<String> contexts = new TreeSet<>();
         for (String atttr : attrs) {
-            // TODO Review this regexp. RFC 5646, RFC 4647
+            // TODO Review this regexp. BCP47, RFC 5646, RFC 4647.
             if (!atttr.matches("[a-zA-Z0-9]{1,8}(-[a-zA-Z0-9]{1,8})*")) {
-                malformedAttrs.add(atttr);
+                contexts.add(atttr);
             }
         }
-        if (!malformedAttrs.isEmpty()) {
-            assertions.add(new Assertion(
+        if (!contexts.isEmpty()) {
+            assertions.add(AssertionProvider.getForWith(
                     "rep_lang_malformed_attr",
                     Assertion.Level.ERROR,
-                    "A language attribute value was incorrectly formed",
-                    "Change the attribute values to conform to BCP47 syntax"
-                    + " rules.",
-                    new ArrayList<>(malformedAttrs)));
+                    new ArrayList<>(contexts)));
         }
     }
 
-    // rep_lang_missing_html_attr (ERROR)
-    // rep_lang_missing_html_attr (WARNING)
-    // "WARNING: A tag uses an xml:lang attribute without an associated ..."
+    /**
+     * Report languages: A tag uses an 'xml:lang' attribute without an
+     * associated 'lang' attribute. Context is empty.
+     */
     private void addAssertionRepLangMissingHtmlAttr() {
         if ((parsedDocument.isXhtml10() & !parsedDocument.isServedAsXml())
                 || parsedDocument.isHtml5()) {
             if (!parsedDocument.getAllLangAttributeTags()
                     .containsAll(
                     parsedDocument.getAllXmlLangAttributeTags())) {
-                assertions.add(new Assertion(
+                // TODO: Needs some contexts.
+                assertions.add(AssertionProvider.getForWith(
                         "rep_lang_missing_html_attr",
                         parsedDocument.isHtml5()
                         ? Assertion.Level.ERROR : Assertion.Level.WARNING,
-                        "A tag uses an <code>xml:lang</code>"
-                        + " attribute without an associated <code"
-                        + ">lang</code> attribute",
-                        "Add a <code>lang</code> attribute to each"
-                        + " of the above tags, with the same value as the <code"
-                        + ">xml:lang</code> attribute.",
                         new ArrayList<String>()));
             }
         }
     }
 
-    // rep_lang_missing_xml_attr (ERROR)
-    // rep_lang_missing_xml_attr (WARNING)
-    // "WARNING: A tag uses a lang attribute without an associated xml:lang ..."
+    /**
+     * Report languages: A tag uses an 'lang' attribute without an associated
+     * 'xml:lang' attribute. Context is empty.
+     */
     private void addAssertionRepLangMissingXmlAttr() {
         if (parsedDocument.isXhtml10() || parsedDocument.isXhtml11()) {
             if (!parsedDocument.getAllXmlLangAttributeTags()
                     .containsAll(
                     parsedDocument.getAllLangAttributeTags())) {
-                assertions.add(new Assertion(
+                // TODO: Needs some contexts.
+                assertions.add(AssertionProvider.getForWith(
                         "rep_lang_missing_xml_attr",
                         parsedDocument.isServedAsXml()
                         ? Assertion.Level.ERROR : Assertion.Level.WARNING,
-                        "A tag uses a <code>lang</code> attribute"
-                        + " without an associated <code"
-                        + ">xml:lang</code> attribute",
-                        "Add an <code>xml:lang</code> attribute to"
-                        + " each of the above tags, with the same value as the"
-                        + " <code>lang</code> attribute.",
                         new ArrayList<String>()));
             }
         }
     }
 
-    // rep_lang_no_lang_attr (WARNING)
-    // "WARNING: The html tag has no language attribute"
+    /**
+     * Report languages: The html tag has no language attribute. Context has the
+     * opening 'html' tag verbatim.
+     */
     private void addAssertionRepLangNoLangAttr() {
         if (parsedDocument.getOpeningHtmlTagLang() == null
                 && parsedDocument.getOpeningHtmlTagXmlLang() == null) {
-            String description =
+            assertions.add(AssertionProvider.getForWith(
                     parsedDocument.isHtml() || parsedDocument.isHtml5()
-                    ? "Add a <code>lang</code> attribute that"
-                    + " indicates the default language of your page. Example:"
-                    + " <code>lang='de'</code>"
+                    ? "rep_lang_no_lang_attr_html"
                     : parsedDocument.isXhtml10()
                     && !parsedDocument.isServedAsXml()
-                    ? "Since this is an XHTML page served as HTML, add both a"
-                    + " <code>lang</code> attribute and an <code"
-                    + ">xml:lang</code> attribute to the html tag to"
-                    + " indicate the default language of your page.  The <code"
-                    + ">lang</code> attribute is understood by HTML"
-                    + " processors, but not by XML processors, and vice versa."
-                    + " Example: <code>lang=&quot;de&quot;"
-                    + " xml:lang=&quot;de&quot;</code>"
-                    : "Add an <code>xml:lang</code> attribute that"
-                    + " indicates the default language of your page. Example:"
-                    + " <code>xml:lang='de'</code>";
-            assertions.add(new Assertion(
-                    "rep_lang_no_lang_attr",
+                    ? "rep_lang_no_lang_attr_xml"
+                    : "rep_lang_no_lang_attr",
                     Assertion.Level.WARNING,
-                    "The <code>html</code> tag has no"
-                    + " language attribute",
-                    description,
                     Arrays.asList(
                     parsedDocument.getOpeningHtmlTag())));
-
         }
     }
 
-    // rep_lang_xml_attr_in_html (ERROR)
-    // "WARNING: This HTML file contains xml:lang attributes"
+    /**
+     * Report languages: This HTML file contains xml:lang attributes. Context is
+     * empty.
+     */
     private void addAssertionRepLangXmlAttrInHtml() {
         if (parsedDocument.isHtml()
                 && !parsedDocument.getAllXmlLangAttributes().isEmpty()) {
-            assertions.add(new Assertion(
-                    "rep_lang_xml_attr_in_html",
-                    Assertion.Level.ERROR,
-                    "This HTML file contains <code>xml:lang</code>"
-                    + " attributes",
-                    "Remove the <code>xml:lang</code> attributes"
-                    + " from the markup, replacing them, where appropriate,"
-                    + " with <code>lang</code> attributes.",
+            assertions.add(AssertionProvider.getForWith(
+                    "rep_lang_xml_attr_in_html", Assertion.Level.ERROR,
+                    // TODO: Needs some contexts.
                     new ArrayList<String>()));
         }
     }
 
-    // rep_latin_non_nfc (WARNING)
-    // "WARNING: are there non-NFC class or id names?"
+    /**
+     * Markup report: There are non-NFC class or id names. Context has a set of
+     * the problem names followed by a list of the problem tags verbatim.
+     */
     private void addAssertionRepLatinNonNfc() {
         if (!parsedDocument.getAllNonNfcClassIdNames().isEmpty()) {
             List<String> contexts = new ArrayList<>();
             contexts.addAll(parsedDocument.getAllNonNfcClassIdNames());
             contexts.addAll(parsedDocument.getAllNonNfcClassIdTags());
-            assertions.add(new Assertion(
-                    "rep_latin_non_nfc",
-                    Assertion.Level.WARNING,
-                    "Class or id names found that are not in Unicode"
-                    + " Normalization&nbsp;Form&nbsp;C",
-                    "It is recommended to save all content as Unicode"
-                    + " Normalization Form C (NFC).",
-                    contexts));
+            assertions.add(AssertionProvider.getForWith(
+                    "rep_latin_non_nfc", Assertion.Level.WARNING, contexts));
         }
     }
 
-    // rep_markup_bdo_no_dir
-    // "ERROR: <bdo> tag without dir"
+    /**
+     * Markup report: Document contains a 'bdo' tag with no 'dir' attribute.
+     * Context has a list of problem 'bdo' tags verbatim.
+     */
     private void addAssertionRepMarkupBdoNoDir() {
         if (!parsedDocument.getBdoTagsWithoutDir().isEmpty()) {
-            assertions.add(new Assertion(
-                    "rep_markup_bdo_no_dir",
-                    Assertion.Level.INFO,
-                    "<code>bdo</code> tags found with no"
-                    + " <code>dir</code> attribute",
-                    "Add a <code>dir</code> attribute to each <code"
-                    + ">bdo</code> tag.",
+            assertions.add(AssertionProvider.getForWith(
+                    "rep_markup_bdo_no_dir", Assertion.Level.INFO,
                     parsedDocument.getBdoTagsWithoutDir()));
         }
     }
 
-    // rep_markup_dir_incorrect (ERROR)
-    // "ERROR: Incorrect values used for dir attribute"
+    /**
+     * Markup report: Tags in the document have a 'dir' attribute with an
+     * incorrect value (should be "rtl", "ltr", or, except in HTML5, "auto").
+     * Context has a set of the incorrect values used in the document.
+     */
     private void addAssertionRepMarkupDirIncorrect() {
         if (!parsedDocument.getAllDirAttributes().isEmpty()) {
             Set<String> incorrectDirs = new TreeSet<>();
@@ -1048,34 +959,25 @@ class Check {
                     incorrectDirs.add(attribute);
                 }
             }
-            if (!incorrectDirs.isEmpty()) {
-                assertions.add(new Assertion(
-                        "rep_markup_dir_incorrect",
-                        Assertion.Level.ERROR,
-                        "Incorrect values used for <code>dir</code>"
-                        + " attribute",
-                        "Correct the attribute values.",
-                        new ArrayList<>(incorrectDirs)));
-            }
+            assertions.add(AssertionProvider.getForWith(
+                    "rep_markup_dir_incorrect", Assertion.Level.ERROR,
+                    /* TODO: This context would be more helpful if it also
+                     * provided the origins of the declarations. */
+                    new ArrayList<>(incorrectDirs)));
         }
     }
 
-    // rep_markup_tags_no_class (INFO)
-    // "INFO: <b> tags found in source"
-    // "INFO: <i> tags found in source"
+// rep_markup_tags_no_class (INFO)
+// "INFO: <b> tags found in source"
+// "INFO: <i> tags found in source"
+    /**
+     * Markup report: 'b' or 'i' tags found with no 'class' attribute. Context
+     * has a list of the problem tags verbatim.
+     */
     private void addAssertionRepMarkupTagsNoClass() {
         if (!parsedDocument.getbITagsWithoutClass().isEmpty()) {
-            assertions.add(new Assertion(
-                    "rep_markup_tags_no_class",
-                    Assertion.Level.INFO,
-                    "<code>b</code> or <code>i</code>"
-                    + " tags found with no class attribute",
-                    "You should not use <code>b</code> or <code>i</code> tags"
-                    + " if there is a more descriptive and relevant tag"
-                    + " available. If you do use them, it is usually better to"
-                    + " add class attributes that describe the intended meaning"
-                    + " of the markup, so that you can distinguish one use from"
-                    + " another.",
+            assertions.add(AssertionProvider.getForWith(
+                    "rep_markup_tags_no_class", Assertion.Level.INFO,
                     parsedDocument.getbITagsWithoutClass()));
         }
     }

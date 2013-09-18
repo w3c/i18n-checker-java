@@ -321,7 +321,7 @@ class ParsedDocument {
         }
 
         // Use the BOM to determine whether the document is in UTF-16.
-        // NB: THis is behaviour copied accross from the old project.
+        // NB: This is behaviour copied accross from the old project.
         if (byteOrderMark == null) {
             this.utf16 = false;
         } else {
@@ -335,7 +335,8 @@ class ParsedDocument {
             if ((element.getName().toLowerCase().equals("a")
                     || element.getName().toLowerCase().equals("link"))
                     && element.getAttributeValue("charset") != null) {
-                this.charsetLinkTags.add(element.getStartTag().toString());
+                this.charsetLinkTags.add(
+                        element.getStartTag().toString().trim());
             }
         }
 
@@ -343,7 +344,7 @@ class ParsedDocument {
         this.bdoTagsWithoutDir = new ArrayList<>();
         for (Element element : source.getAllElements("bdo")) {
             if (element.getAttributeValue("dir") == null) {
-                bdoTagsWithoutDir.add(element.getStartTag().toString());
+                bdoTagsWithoutDir.add(element.getStartTag().toString().trim());
             }
         }
 
@@ -403,25 +404,25 @@ class ParsedDocument {
             String xmlLangAttr = element.getAttributeValue("xml:lang");
             String lang = null;
             String xmlLang = null;
+            String tag = element.getStartTag().toString().trim();
             if (langAttr != null) {
                 lang = langAttr.trim();
                 if (!lang.isEmpty()) {
                     allLangAttributes.add(lang);
-                    allLangAttributeTags.add(element.getStartTag().toString());
+                    allLangAttributeTags.add(tag);
                 }
             }
             if (xmlLangAttr != null) {
                 xmlLang = xmlLangAttr.trim();
                 if (!xmlLang.isEmpty()) {
                     allXmlLangAttributes.add(xmlLang);
-                    allXmlLangAttributeTags.add(
-                            element.getStartTag().toString());
+                    allXmlLangAttributeTags.add(tag);
                 }
             }
             if (lang != null && xmlLang != null && !lang.equals(xmlLang)) {
                 this.allConflictingLangAttributes.add(
                         Arrays.asList(
-                        lang, xmlLang, element.getStartTag().toString()));
+                        lang, xmlLang, tag));
             }
         }
 
