@@ -31,6 +31,7 @@ import net.htmlparser.jericho.Source;
 import org.apache.commons.io.ByteOrderMark;
 import org.apache.commons.io.IOUtils;
 import net.htmlparser.jericho.Element;
+import net.htmlparser.jericho.LoggerProvider;
 import net.htmlparser.jericho.StartTag;
 import net.htmlparser.jericho.StartTagType;
 
@@ -43,6 +44,10 @@ import net.htmlparser.jericho.StartTagType;
  */
 class ParsedDocument {
 
+    static {
+        // Suppress HTML parser's log output.
+        net.htmlparser.jericho.Config.LoggerProvider = LoggerProvider.DISABLED;
+    }
     // Resources:
     private final DocumentResource documentResource;
     private final Source source;
@@ -135,7 +140,7 @@ class ParsedDocument {
         StartTag xmlStartTag = source.getFirstStartTag(
                 StartTagType.XML_DECLARATION);
         if (xmlStartTag != null) {
-            this.xmlDeclaration = xmlStartTag.toString();
+            this.xmlDeclaration = xmlStartTag.toString().trim();
             Matcher charsetMatcher = Pattern.compile(
                     "encoding\\s*=\\s*'?\"?\\s*([^\"'\\s\\?>]+)")
                     .matcher(this.xmlDeclaration);
@@ -172,12 +177,12 @@ class ParsedDocument {
             if (charset != null) {
                 charset = charset.trim();
                 if (!charset.isEmpty()) {
+                    String tag = metaElement.getStartTag().toString().trim();
                     if (!charsetMetaTags.containsKey(charset)) {
                         charsetMetaTags.put(
                                 charset, new ArrayList<String>());
                     }
-                    charsetMetaTags.get(charset).add(
-                            metaElement.getStartTag().toString());
+                    charsetMetaTags.get(charset).add(tag);
                     if (metaElement.getEnd() > 1024) {
                         charsetMetaTagsOutside1024.add(
                                 metaElement.getStartTag().toString());
@@ -295,12 +300,19 @@ class ParsedDocument {
                 int endOfContext =
                         Math.min(documentBodyBytes.length - 1, i + 20);
                 try {
-                    bomsInContent.add(new String(
+                    /* The context will look something like:
+                     * " ... comes the BOM /???/. Ok, test that. ... "
+                     * 
+                     *  A BOM encoded in US-ASCII looks something like "???"
+                     * (depending on the number of code points it uses). */
+                    bomsInContent.add(
+                            (startofContext == 0 ? "\"" : "\" ... ")
+                            + new String(
                             Arrays.copyOfRange(
-                            documentBodyBytes,
-                            startofContext,
-                            endOfContext),
-                            "US-ASCII"));
+                            documentBodyBytes, startofContext, endOfContext),
+                            "US-ASCII").replaceAll("\\s+", " ")
+                            + (endOfContext == documentBodyBytes.length - 1
+                            ? "\"" : " ... \""));
                 } catch (UnsupportedEncodingException ex) {
                     throw new RuntimeException(ex);
                 }

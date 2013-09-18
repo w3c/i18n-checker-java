@@ -396,127 +396,96 @@ class Check {
         }
     }
 
-    // rep_charset_bom_found (WARNING)
-    // "CHARSET REPORT: UTF-8 BOM found at start of file"
+    /**
+     * Charset report: UTF-8 BOM found at start of file. Context has the name of
+     * the BOM.
+     */
     private void addAssertionRepCharsetBomFound() {
         if (parsedDocument.getByteOrderMark() != null
                 && parsedDocument.getCharsetByteOrderMark().trim()
-                .toLowerCase().contains("utf-8")) {
-            assertions.add(new Assertion(
+                .toLowerCase().matches(".*utf-8.*")) {
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_bom_found",
                     Assertion.Level.WARNING,
-                    "UTF-8 BOM found at start of file",
-                    "Using an editor or an appropriate tool, remove the byte"
-                    + " order mark from the beginning of the file. This can"
-                    + " often be achieved by saving the document with the"
-                    + " appropriate settings in the editor. On the other hand,"
-                    + " some editors (such as Notepad on Windows) do not give"
-                    + " you a choice, and always add the byte order mark. In"
-                    + " this case you may need to use a different editor.",
-                    Arrays.asList(
-                    parsedDocument.getByteOrderMark().toString())));
+                    Arrays.asList(parsedDocument.getByteOrderMark())));
         }
     }
 
-    // rep_charset_bom_in_content (WARNING)
-    // "CHARSET REPORT: BOM in content"
+    /**
+     * Charset report: Byte order mark (BOM) found in the document body. Context
+     * has a list problem excerpts from the document. The excerpts are around 30
+     * characters long, have the invalid BOM in the middle, and are re-encoded
+     * in US-ASCII so that the BOM will look like: "???".
+     */
     private void addAssertionRepCharsetBomInContent() {
         if (!parsedDocument.getBomsInContent().isEmpty()) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_bom_in_content",
                     Assertion.Level.WARNING,
-                    "BOM found in content",
-                    "Using an editor or an appropriate tool, remove the byte"
-                    + " order mark from the beginning of the file or chunk of"
-                    + " content where it appears. If the problem does arise"
-                    + " from a BOM at the top of an included file, this can"
-                    + " often be achieved by saving the content with"
-                    + " appropriate settings in the editor. On the other hand,"
-                    + " some editors (such as Notepad on Windows) do not give"
-                    + " you a choice, and always add the byte order mark. In"
-                    + " this case you may need to use a different editor.",
                     parsedDocument.getBomsInContent()));
         }
     }
 
-    // rep_charset_charset_attr (ERROR)
-    // rep_charset_charset_attr (WARNING)
-    // "CHARSET REPORT: charset attribute used on a or link elements"
+    /**
+     * Charset report: 'charset' attribute used on an 'a' tag or a 'link' tag.
+     * This is an error in HTML5 (because the HTML5 specification deprecates the
+     * use of the attribute on these tags). Context has a list of the problem
+     * tags verbatim.
+     */
     private void addAssertionRepCharsetCharsetAttr() {
         if (!parsedDocument.getCharsetLinkTags().isEmpty()) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_charset_attr",
                     parsedDocument.isHtml5()
                     ? Assertion.Level.ERROR : Assertion.Level.WARNING,
-                    "<code>charset</code> attribute used on <code"
-                    + ">a</code> or <code>link</code>"
-                    + " elements",
-                    "Remove the charset attribute. If pointing to a page that"
-                    + " is under your control, ensure that any appropriate"
-                    + " character encoding information is provided for that"
-                    + " page.",
                     parsedDocument.getCharsetLinkTags()));
         }
     }
 
-    // rep_charset_conflict (ERROR)
-    // "CHARSET REPORT: Conflicting character encoding declarations"
+    /**
+     * Charset report: Conflicting character encoding declarations. Context has
+     * a list of all the declared charsets.
+     */
     private void addAssertionRepCharsetConflict() {
         if (parsedDocument.getAllCharsetDeclarations().size() > 1) {
-            assertions.add(new Assertion(
+            assertions.add(AssertionProvider.getForWith(
                     "rep_charset_conflict",
                     Assertion.Level.ERROR,
-                    "Conflicting character encoding declarations",
-                    "Change the character encoding declarations so that they"
-                    + " match.  Ensure that your document is actually saved in"
-                    + " the encoding you choose.",
+                    /* TODO: This context would be more helpful if it also
+                     * provided the origins of the declarations. */
                     new ArrayList<>(
                     parsedDocument.getAllCharsetDeclarations())));
         }
     }
 
-    // rep_charset_incorrect_use_meta (ERROR)
-    // rep_charset_incorrect_use_meta (WARNING)
-    // "CHARSET REPORT: Incorrect use of meta encoding declaration"
+    /**
+     * Charset report: Incorrect use of meta encoding declaration. Context has a
+     * verbatim list of all the meta tags that have a charset declaration.
+     */
     private void addAssertionRepCharsetIncorrectUseMeta() {
         if (!parsedDocument.getCharsetMetaTags().isEmpty()
                 && parsedDocument.getCharsetHttp() == null
                 && parsedDocument.getByteOrderMark() == null
                 && parsedDocument.getCharsetXmlDeclaration() == null
-                && parsedDocument.isXhtml1X()
-                && !parsedDocument.getCharsetMetaTags()
-                .containsKey("utf-8")
-                && !parsedDocument.getCharsetMetaTags()
-                .containsKey("utf-16")) {
-            List<String> contexts = new ArrayList<>();
-            for (List<String> list : parsedDocument.getCharsetMetaTags()
-                    .values()) {
-                contexts.addAll(list);
+                && parsedDocument.isXhtml1X()) {
+            boolean acceptableMeta = false;
+            for (String charset
+                    : parsedDocument.getCharsetMetaTags().keySet()) {
+                if (charset.toUpperCase().matches(".*UTF-8.*")
+                        || charset.toUpperCase().matches(".*UTF-16.*")) {
+                    acceptableMeta = true;
+                }
             }
-            if (parsedDocument.isServedAsXml()) {
-                assertions.add(new Assertion(
+            if (!acceptableMeta) {
+                List<String> contexts = new ArrayList<>();
+                for (List<String> list : parsedDocument.getCharsetMetaTags()
+                        .values()) {
+                    contexts.addAll(list);
+                }
+                assertions.add(AssertionProvider.getForWith(
                         "rep_charset_incorrect_use_meta",
-                        Assertion.Level.ERROR,
-                        "Incorrect use of <code>meta</code>"
-                        + " encoding declarations",
-                        "Add an XML declaration with encoding information,"
-                        + " or change the character encoding for this page"
-                        + " to UTF-8. If this page is never parsed as HTML,"
-                        + " you can remove the <code>meta</code>"
-                        + " tag.",
-                        contexts));
-            } else {
-                assertions.add(new Assertion(
-                        "rep_charset_incorrect_use_meta",
-                        Assertion.Level.WARNING,
-                        "Incorrect use of <code>meta</code>"
-                        + " encoding declarations",
-                        "There is no problem for this XHTML document as"
-                        + " long as it is being served as HTML (text/html)."
-                        + " If, however, you expect it to be processed as"
-                        + " XML at some point, you should either add an XML"
-                        + " declaration with encoding information, or use"
-                        + " UTF-8 as the character encoding of your page.",
+                        parsedDocument.isServedAsXml()
+                        ? Assertion.Level.ERROR : Assertion.Level.WARNING,
                         contexts));
             }
         }
