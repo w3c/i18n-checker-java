@@ -62,7 +62,7 @@ class Check {
                     "No content to check",
                     "Either the document was empty or the contents could not be"
                     + " retrieved.",
-                    new ArrayList()));
+                    new ArrayList<String>()));
         }
     }
 
@@ -218,9 +218,8 @@ class Check {
             assertions.add(AssertionProvider.getForWith(
                     "info_charset_http",
                     Assertion.Level.INFO,
-                    Arrays.asList(
-                    parsedDocument.getCharsetHttp(),
-                    parsedDocument.getContentType())));
+                    Arrays.asList(parsedDocument.getCharsetHttp(),
+                    "Content-Type: " + parsedDocument.getContentType())));
         }
     }
 
@@ -714,7 +713,8 @@ class Check {
         List<String> contexts = new ArrayList<>();
         if (parsedDocument.getCharsetHttp() != null) {
             nonBomCharsets.put(parsedDocument.getCharsetHttp(),
-                    Arrays.asList(parsedDocument.getContentType()));
+                    Arrays.asList("Content-Type: "
+                    + parsedDocument.getContentType()));
         }
         if (parsedDocument.getCharsetXmlDeclaration() != null) {
             nonBomCharsets.put(parsedDocument.getCharsetXmlDeclaration(),
@@ -725,9 +725,7 @@ class Check {
                 : nonBomCharsets.entrySet()) {
             if (entry.getKey().toUpperCase()
                     .matches(".*UTF-16[\\s]*-?[\\s]*\\(?[BL]E\\)?.*")) {
-                for (List<String> list : nonBomCharsets.values()) {
-                    contexts.addAll(list);
-                }
+                contexts.addAll(entry.getValue());
             }
         }
         if (!contexts.isEmpty()) {
@@ -950,20 +948,22 @@ class Check {
      */
     private void addAssertionRepMarkupDirIncorrect() {
         if (!parsedDocument.getAllDirAttributes().isEmpty()) {
-            Set<String> incorrectDirs = new TreeSet<>();
+            Set<String> contexts = new TreeSet<>();
             for (String attribute : parsedDocument.getAllDirAttributes()) {
-                if (!attribute.equalsIgnoreCase("rtl")
-                        && !attribute.equalsIgnoreCase("ltr")
+                if (!attribute.trim().equalsIgnoreCase("rtl")
+                        && !attribute.trim().equalsIgnoreCase("ltr")
                         || (!parsedDocument.isHtml5()
-                        && attribute.equalsIgnoreCase("auto"))) {
-                    incorrectDirs.add(attribute);
+                        && attribute.trim().equalsIgnoreCase("auto"))) {
+                    contexts.add(attribute);
                 }
             }
-            assertions.add(AssertionProvider.getForWith(
-                    "rep_markup_dir_incorrect", Assertion.Level.ERROR,
-                    /* TODO: This context would be more helpful if it also
-                     * provided the origins of the declarations. */
-                    new ArrayList<>(incorrectDirs)));
+            if (!contexts.isEmpty()) {
+                assertions.add(AssertionProvider.getForWith(
+                        "rep_markup_dir_incorrect", Assertion.Level.ERROR,
+                        /* TODO: This context would be more helpful if it also
+                         * provided the origins of the declarations. */
+                        new ArrayList<>(contexts)));
+            }
         }
     }
 
