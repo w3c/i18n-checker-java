@@ -27,7 +27,7 @@ contexts = [utf-8, Content-Type: text/html; charset=utf-8]
 
 An Assertion level can be `INFO`, `WARNING`, `ERROR`, or `MESSAGE`. `MESSAGE` level Assertions contain only meta information about the operation of the checker. `WARNING` and `ERROR` level Assertions describe i18n problems with the document. In such cases the `htmlTitle` and `htmlDescription` provide advice on solving the problem. `INFO` Assertions contain useful information, relevant to the i18n of document (such as a list of the language and charset declarations in the document).
 
-Contexts are often verbatim extracts from an HTML document. Depending on how you wish to use the contexts, you may need to remove extraneous new-line, tab, and white-space characters. If you wish to present the results in  HTML or XML, you should [escape](http://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-on-html) the contexts.
+Contexts are often verbatim extracts from an HTML document. Depending on how you wish to use the contexts, you may need to remove extraneous newline, tab, and whitespace characters. If you wish to present the results in  HTML or XML, you should [escape](http://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-on-html) the contexts.
 
 Here's a simple example of how a List of `Assertion` can be displayed to a user:
 ```java
@@ -76,13 +76,13 @@ The **i18n-checker** has a simple design. The two classes,  [`org.w3.i18n.I18nCh
 * [`org.w3.i18n.ParsedDocument`](http://github.com/w3c/i18n-checker/blob/master/src/main/java/org/w3/i18n/ParsedDocument.java), which is constructed with a `DocumentResource`, and is responsible for processing and analysing the document; and
 * [`org.w3.i18n.Check`](http://github.com/w3c/i18n-checker/blob/master/src/main/java/org/w3/i18n/Check.java), which uses the information prepared by `ParsedDocument` to create a list of assertions-- i.e. the results!
 
-The relationship between `ParsedDocument` and `Check` is similar to the relationship between the _model_ and the _view_ in the Model–view–controller architecture pattern: The `ParsedDocument` contains most of the business logic, and does all the hard work of analysing a document, then the `Check` takes this information and renders it in to a list of `Assertion`.
+The relationship between `ParsedDocument` and `Check` is similar to the relationship between the _model_ and the _view_ in the Model–view–controller architectural pattern: The `ParsedDocument` contains most of the business logic, and does all the hard work of analysing a document, then the `Check` takes this information and renders it in to a list of `Assertion`.
 
 ###To extend the functionality of the checker
 
 First, extend or expand `ParsedDocument`. Instances of `ParsedDocument` already have access to the document body, a map of HTTP response headers, a document model from the HTML parser (currently a `Source` object), and other details. Add your extra logic for processing the document, and then expose something useful for a `Check` object to use.
 
-Second, extend or expand `Check`. Glance at `Check` and you'll notice: a `Check` is instantiated with a `ParsedDocument`; in the constructor, a list of `Assertion` is constructed; and then several methods that look like `private void addAssertionXYZ()` are called, which each add an `Assertion` to the list. (One of these methods might very well add nothing to the list if it finds nothing to report.) Add a new `addAssertionXYZ()` method, and have it use the extra details you exposed in `ParsedDocument`-- try to extract some really useful contexts. Make sure the new method gets called when `Check` is instantiated.
+Second, extend or expand `Check`. Glance at `Check` and you'll notice: (1) a `Check` is instantiated with a `ParsedDocument`; (2) in the constructor, a list of `Assertion` is constructed; and (3) then several methods that look like `private void addAssertionXYZ()` are called, which each add an `Assertion` to the list. (One of these methods might very well add nothing to the list if it finds nothing to report.) Add a new `addAssertionXYZ()` method, and have it use the extra details you exposed in `ParsedDocument`-- try to extract some really useful contexts. Make sure the new method gets called when `Check` is instantiated.
 
 Thirdly, construct your new `Assertion`. An `Assertion` has an ID, level, HTML title, HTML description, and a list of contexts. You can construct the assertion directly:
 ```java
