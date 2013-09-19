@@ -25,9 +25,9 @@ htmlDescription = …
 contexts = [utf-8, Content-Type: text/html; charset=utf-8]
 ```
 
-An Assertion level can be `INFO`, `WARNING`, `ERROR`, or `MESSAGE`. `MESSAGE` level Assertions only contain meta information about the operation of the checker. `WARNING` and `ERROR` level Assertions describe i18n problems with the document. In such cases the `htmlTitle` and `htmlDescription` provide advice on solving the problem. And `INFO` Assertion contain useful information about the document that are relevant to i18n.
+An Assertion level can be `INFO`, `WARNING`, `ERROR`, or `MESSAGE`. `MESSAGE` level Assertions contain only meta information about the operation of the checker. `WARNING` and `ERROR` level Assertions describe i18n problems with the document. In such cases the `htmlTitle` and `htmlDescription` provide advice on solving the problem. `INFO` Assertions contain useful information, relevant to the i18n of document (such as a list of the language and charset declarations in the document).
 
-Contexts are often verbatim extracts from an HTML document. Depending on how you wish to use the contexts, you may need to remove extraneous new-line, tab, and space characters. And If you wish to display the results in an HTML or XML document, you should [escape](http://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-on-html) the contexts.
+Contexts are often verbatim extracts from an HTML document. Depending on how you wish to use the contexts, you may need to remove extraneous new-line, tab, and white-space characters. If you wish to present the results in  HTML or XML, you should [escape](http://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-on-html) the contexts.
 
 Here's a simple example of how a List of `Assertion` can be displayed to a user:
 ```java
@@ -94,10 +94,11 @@ new Assertion(
         Arrays.asList("example context1", "example context2"));
 ```
 
-Or you can make use of the [`org.w3.i18n.AssertionProvider`](http://github.com/w3c/i18n-checker/blob/master/src/main/java/org/w3/i18n/AssertionProvider.java) class. `AssertionProvider` exposes `public static Assertion getForWith(String id, Assertion.Level level, List<String> contexts)`. This method takes the id and Level you provide, and finds the corresponding title and description, then instatiates a new Assertion with all the details, plus the given list of contexts. `AssertionProvider` currently gets its definitions from a properties file: [`src/main/resources/assertions-EN.properties`](https://github.com/w3c/i18n-checker/blob/master/src/main/resources/assertions-EN.properties). To add your own definitions to `AssertionProvider`, you must modify this file (instructions are provided at the top of the file in a comment block).
+Or you can make use of the [`org.w3.i18n.AssertionProvider`](http://github.com/w3c/i18n-checker/blob/master/src/main/java/org/w3/i18n/AssertionProvider.java) class. `AssertionProvider` exposes `public static Assertion getForWith(String id, Assertion.Level level, List<String> contexts)`. This method takes the id and Level you provide, and finds a corresponding title and description. Then it creates a new Assertio with the details, plus the given list of contexts. `AssertionProvider` currently gets its definitions from a properties file: [`src/main/resources/assertions-EN.properties`](https://github.com/w3c/i18n-checker/blob/master/src/main/resources/assertions-EN.properties). To add your own definitions to `AssertionProvider`, you must modify this file (instructions are provided at the top of the file in a comment block).
 
 The following guidelines should be observed:
 * `ParsedDocument` shouldn't make use of `Assertion`;
+* `Check` shouldn't make use of `DocumentResource`;
 * methods in `Check` shouldn't need to do any complicated processing, such as using the HTML parser; and
 * assertions are written for people who want to improve the i18n of their work-- advice is qualified by published W3C guidelines and specifications.
 
