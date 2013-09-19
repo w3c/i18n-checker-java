@@ -23,6 +23,19 @@
         <url>http://www.w3.org/</url>
     </organization>
     
+    <scm>
+        <connection>scm:git:git://github.com/w3c/i18n-checker.git</connection>
+        <developerConnection>scm:git:git@github.com:w3c/i18n-checker.git</developerConnection>
+        <url>http://github.com/w3c/i18n-checker</url>
+    </scm>
+    
+    <developers>
+        <developer>
+            <id>Developers</id>
+            <url>http://github.com/w3c/i18n-checker/graphs/contributors</url>
+        </developer>
+    </developers>
+    
     <build>
         <plugins>
             <plugin>
