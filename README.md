@@ -83,7 +83,7 @@ The relationship between `ParsedDocument` and `Check` is similar to the relation
 
 First, extend or expand `ParsedDocument`. Instances of `ParsedDocument` already have access to the document body, a map of HTTP response headers, a document model from the HTML parser (currently a `Source` object), and other details. Add your extra logic for processing the document, and then expose something useful for a `Check` object to use.
 
-Second, extend or expand `Check`. Glance at `Check` and you'll notice: (1) a `Check` is instantiated with a `ParsedDocument`; (2) in the constructor, a list of `Assertion` is constructed; and (3) then several methods that look like `private void addAssertionXYZ()` are called, which each add an `Assertion` to the list. (One of these methods might very well add nothing to the list if it finds nothing to report.) Add a new `addAssertionXYZ()` method, and have it use the extra details you exposed in `ParsedDocument`-- try to extract some really useful contexts. Make sure the new method gets called when `Check` is instantiated.
+Second, extend or expand `Check`. Glance at `Check` and you'll notice: (1) a `Check` is instantiated with a `ParsedDocument`; (2) in the constructor, a list of `Assertion` is constructed; and (3) several methods that look like `private void addAssertionXYZ()` are called, which each add an `Assertion` to the list. (One of these methods might very well add nothing to the list if it finds nothing to report.) Add a new `addAssertionXYZ()` method, and have it use the extra details you exposed in `ParsedDocument`-- try to extract some really useful contexts. Make sure the new method gets called when `Check` is instantiated.
 
 Thirdly, construct your new `Assertion`. An `Assertion` has an ID, level, HTML title, HTML description, and a list of contexts. You can construct the assertion directly:
 ```java
@@ -95,7 +95,7 @@ new Assertion(
         Arrays.asList("example context1", "example context2"));
 ```
 
-Or you can make use of the [`org.w3.i18n.AssertionProvider`](http://github.com/w3c/i18n-checker/blob/master/src/main/java/org/w3/i18n/AssertionProvider.java) class. `AssertionProvider` exposes `public static Assertion getForWith(String id, Assertion.Level level, List<String> contexts)`. This method takes the id and Level you provide, and finds a corresponding title and description. Then it creates a new Assertio with the details, plus the given list of contexts. `AssertionProvider` currently gets its definitions from a properties file: [`src/main/resources/assertions-EN.properties`](https://github.com/w3c/i18n-checker/blob/master/src/main/resources/assertions-EN.properties). To add your own definitions to `AssertionProvider`, you must modify this file (instructions are provided at the top of the file in a comment block).
+Or you can make use of the [`org.w3.i18n.AssertionProvider`](http://github.com/w3c/i18n-checker/blob/master/src/main/java/org/w3/i18n/AssertionProvider.java) class. `AssertionProvider` exposes `public static Assertion getForWith(String id, Assertion.Level level, List<String> contexts)`. This method takes the id and Level you provide, and finds a corresponding title and description. Then it creates a new Assertion with the details, plus the given list of contexts. `AssertionProvider` currently gets its definitions from a properties file: [`src/main/resources/assertions-EN.properties`](https://github.com/w3c/i18n-checker/blob/master/src/main/resources/assertions-EN.properties). To add your own definitions to `AssertionProvider`, you must modify this file (instructions are provided at the top of the file in a comment block).
 
 The following guidelines should be observed:
 * `ParsedDocument` shouldn't make use of `Assertion`;
@@ -105,7 +105,9 @@ The following guidelines should be observed:
 
 Testing
 -------
-[Coming soon.]
+The **i18n-checker** uses the JUnit testing framework. Test fixtures for various classes can be found in [`src/test/java/org/w3/i18n/`](http://github.com/w3c/i18n-checker/blob/master/src/test/java/org/w3/i18n/). Developers should expand these fixtures as they further develop the checker.
+
+In addition to the regular unit tests, the classes [`org.w3.i18n.I18nTest`](http://github.com/w3c/i18n-checker/blob/master/src/test/java/org/w3/i18n/I18nTest.java) and [`org.w3.i18n.I18nTestRunnerTest`](http://github.com/w3c/i18n-checker/blob/master/src/test/java/org/w3/i18n/I18nTestRunnerTest.java) make use of legacy testing resources created for the old checker [old i18n checker](http://validator.w3.org/i18n-checker/). Have a look at these classes and the porperties files in [`src/test/resources/`](http://github.com/w3c/i18n-checker/blob/master/src/test/resources/) to get a feel for how the legacy resources are used.
 
 License
 -------
