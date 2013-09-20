@@ -9,6 +9,7 @@ Contents:
 1. [Usage](#usage)
 2. [Developers](#developers)
 3. [Testing](#testing)
+4. [License](#license)
 
 Usage
 -----
@@ -105,3 +106,13 @@ The following guidelines should be observed:
 Testing
 -------
 [Coming soon.]
+
+License
+-------
+The **i18n-checker** is released under the [W3C® Software License](http://www.w3.org/Consortium/Legal/2002/copyright-software-20021231).
+
+> i18n-checker: https://github.com/w3c/i18n-checker
+>
+> Copyright © 2013 World Wide Web Consortium, (Massachusetts Institute of Technology, European Research Consortium for Informatics and Mathematics, Keio University, Beihang). All Rights Reserved. This work is distributed under the W3C® Software License [1] in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+> 
+> [1] http://www.w3.org/Consortium/Legal/2002/copyright-software-20021231
