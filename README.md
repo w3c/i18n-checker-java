@@ -4,7 +4,7 @@ A Java implementation of the [W3C Internationalization Checker](http://validator
 
 **Notice:** This project is in the early stages of its development.
 
-![Build status image from travis-ci.org](https://travis-ci.org/w3c/i18n-checker.png?branch=master)
+[![Build status image from travis-ci.org](https://travis-ci.org/w3c/i18n-checker.png?branch=master)](http://travis-ci.org/w3c/i18n-checker)
 
 Contents:
 
