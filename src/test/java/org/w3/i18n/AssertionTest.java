@@ -12,6 +12,11 @@
  */
 package org.w3.i18n;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -61,5 +66,35 @@ public class AssertionTest {
         assertEquals(a.hashCode(), b.hashCode());
         assertEquals(b.hashCode(), a.hashCode());
         assertEquals(c.hashCode(), a.hashCode());
+    }
+
+    @Test
+    public void testSerialization() {
+        try {
+            // Create the test Assertion.
+            Assertion assertion = new Assertion(
+                    "test_ser", Assertion.Level.MESSAGE,
+                    "Test serialization", "This is only a test.",
+                    Arrays.asList("A", "B", "C"));
+            // Create the output stream.
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            // Write the assertion to the stream.
+            oos.writeObject(assertion);
+            // Create the input stream.
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(baos.toByteArray());
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            // Read back the serialized Assertion.
+            Assertion serializedAssertion = (Assertion) ois.readObject();
+            // Compare it with the original.
+            assertEquals("The serialised assertion is not the same as it was"
+                    + " before serialization. Assertion: " + assertion
+                    + ", serializedAssertion: " + serializedAssertion,
+                    assertion, serializedAssertion);
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
+
     }
 }
