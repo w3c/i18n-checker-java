@@ -359,7 +359,7 @@ class ParsedDocument {
                     if (context.length() > 15) {
                         context = context.substring(0, 14) + " ... ";
                     }
-                    bITagsWithoutClass.add(context);
+                    bITagsWithoutClass.add("\"" + context + "\"");
                 }
             }
         }
