@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@code DocumentResource} is a aggregation of the materials needed to make a
@@ -37,6 +39,8 @@ class DocumentResource {
     private final URL url;
     private final Map<String, List<String>> headers;
     private final InputStream body;
+    private static final Logger logger =
+            LoggerFactory.getLogger(DocumentResource.class);
 
     public DocumentResource(
             URL url, InputStream body, Map<String, List<String>> headers) {
@@ -105,6 +109,7 @@ class DocumentResource {
             throw new IllegalArgumentException("Passed an AsyncHttpClient that"
                     + " is closed. asyncHttpClient: " + asyncHttpClient);
         }
+        logger.info("Retrieving remote document: " + url);
         // Retrieve the remote document with the HTTP client.
         Response response;
         try {
