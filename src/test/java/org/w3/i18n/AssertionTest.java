@@ -31,7 +31,6 @@ public class AssertionTest {
     private static Assertion a;
     private static Assertion b;
     private static Assertion c;
-    private static Assertion d;
 
     public AssertionTest() {
     }
@@ -47,9 +46,6 @@ public class AssertionTest {
         c = new Assertion(
                 "test", Assertion.Level.INFO, "test", "",
                 Arrays.asList("test", "test"));
-        d = new Assertion(
-                "test", Assertion.Level.INFO, "test", "",
-                Arrays.asList("1"));
     }
 
     @Test
