@@ -18,6 +18,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,79 +34,52 @@ import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author Joseph J Short
  */
+@RunWith(Parameterized.class)
 public class I18nTestRunnerTest {
 
-    @Test
-    public void testCharsetTests() {
-        File file = new File(
-                "target/test-classes/tests_charsets.properties");
-        Map<I18nTest, DocumentResource> testsWithResources =
-                prepareDocumentResources(parseTestsFile(file));
-        int testsFailed = run(testsWithResources);
-        String report = "Failed " + testsFailed + " out of "
-                + testsWithResources.size() + " I18nTests generated from"
-                + " '" + file.getName() + "'.";
-        System.out.println(report);
-        if (testsFailed > 0) {
-            fail(report);
-        }
+    private I18nTest i18nTest;
+    private DocumentResource documentResource;
+    private static final Logger logger =
+            LoggerFactory.getLogger(I18nTestRunnerTest.class);
+
+    public I18nTestRunnerTest(
+            I18nTest i18nTest, DocumentResource documentResource) {
+        this.i18nTest = i18nTest;
+        this.documentResource = documentResource;
     }
 
-    @Test
-    public void testLanguageTests() {
-        File file = new File(
-                "target/test-classes/tests_language.properties");
-        Map<I18nTest, DocumentResource> testsWithResources =
-                prepareDocumentResources(parseTestsFile(file));
-        int testsFailed = run(testsWithResources);
-        String report = "Failed " + testsFailed + " out of "
-                + testsWithResources.size() + " I18nTests generated from"
-                + " '" + file.getName() + "'.";
-        System.out.println(report);
-        if (testsFailed > 0) {
-            fail(report);
+    @Parameters
+    public static Collection<Object[]> prepareParameterValues() {
+        List<Object[]> parameterValues = new ArrayList<>();
+        Map<I18nTest, DocumentResource> testsWithResources = new TreeMap<>();
+        for (File file : new File[]{
+            new File("target/test-classes/tests_charsets.properties"),
+            new File("target/test-classes/tests_language.properties"),
+            new File("target/test-classes/tests_markup.properties"),
+            new File("target/test-classes/tests_nonLatin.properties")}) {
+            testsWithResources.putAll(
+                    prepareDocumentResources(parseTestsFile(file)));
         }
-    }
-
-    @Test
-    public void testMarkupTests() {
-        File file = new File(
-                "target/test-classes/tests_markup.properties");
-        Map<I18nTest, DocumentResource> testsWithResources =
-                prepareDocumentResources(parseTestsFile(file));
-        int testsFailed = run(testsWithResources);
-        String report = "Failed " + testsFailed + " out of "
-                + testsWithResources.size() + " I18nTests generated from"
-                + " '" + file.getName() + "'.";
-        System.out.println(report);
-        if (testsFailed > 0) {
-            fail(report);
+        for (Map.Entry<I18nTest, DocumentResource> entry
+                : testsWithResources.entrySet()) {
+            parameterValues.add(
+                    new Object[]{entry.getKey(), entry.getValue()});
         }
-    }
-
-    @Test
-    public void testNonLatinTests() {
-        File file = new File(
-                "target/test-classes/tests_nonLatin.properties");
-        Map<I18nTest, DocumentResource> testsWithResources =
-                prepareDocumentResources(parseTestsFile(file));
-        int testsFailed = run(testsWithResources);
-        String report = "Failed " + testsFailed + " out of "
-                + testsWithResources.size() + " I18nTests generated from"
-                + " '" + file.getName() + "'.";
-        System.out.println(report);
-        if (testsFailed > 0) {
-            fail(report);
-        }
+        return parameterValues;
     }
 
     private static List<I18nTest> parseTestsFile(File file) {
-        System.out.println("Parsing tests file: '" + file + "'.");
+        logger.info("Parsing tests file: '" + file + "'.");
 
         // Parse the properties file.
         PropertiesConfiguration configuration = new PropertiesConfiguration();
@@ -123,12 +97,11 @@ public class I18nTestRunnerTest {
         for (String prefix : prefixes) {
             List<I18nTest> testsForPrefix =
                     interpretTests(prefix, configuration);
-            System.out.println("Created " + testsForPrefix.size()
+            logger.info("Created " + testsForPrefix.size()
                     + " I18nTest(s) for prefix '" + prefix + "' in '"
                     + file.getName() + "'.");
             i18nTests.addAll(testsForPrefix);
         }
-        System.out.println();
         Collections.sort(i18nTests);
         return i18nTests;
     }
@@ -328,7 +301,6 @@ public class I18nTestRunnerTest {
      * "DocumentResource.getRemote(Set<URL> urls)".) */
     private static Map<I18nTest, DocumentResource> prepareDocumentResources(
             List<I18nTest> i18nTests) {
-        System.out.println("Retrieving remote resources ...");
 
         Map<I18nTest, DocumentResource> testsWithResources = new TreeMap<>();
 
@@ -337,6 +309,7 @@ public class I18nTestRunnerTest {
         for (I18nTest i18nTest : i18nTests) {
             urls.add(i18nTest.getUrl());
         }
+        logger.info("Retrieving " + urls.size() + " remote resource(s).");
         Map<URL, DocumentResource> documentResources;
         try {
             documentResources = DocumentResource.getRemote(urls);
@@ -353,26 +326,13 @@ public class I18nTestRunnerTest {
         return testsWithResources;
     }
 
-    private static int run(Map<I18nTest, DocumentResource> testsWithResources) {
-        int testsFailed = 0;
-        for (Map.Entry<I18nTest, DocumentResource> entry
-                : testsWithResources.entrySet()) {
-            boolean passed = run(entry.getKey(), entry.getValue());
-            if (!passed) {
-                testsFailed++;
-            }
-        }
-        System.out.println();
-        return testsFailed;
-    }
-
-    /* Returns true if the test succeeds, others false. Prints details of the
-     * test to System.out. */
-    private static boolean run(
-            I18nTest i18nTest, DocumentResource documentResource) {
+    @Test
+    public void run() {
         boolean passed;
-        System.out.println("\nRunning test: '" + i18nTest.getName() + "' ["
-                + i18nTest.getUrl() + "].");
+        StringBuilder testSB = new StringBuilder();
+
+        testSB.append("\nRunning test: '").append(i18nTest.getName())
+                .append("' [").append(i18nTest.getUrl()).append("].");
 
         List<Assertion> expectedAssertions = i18nTest.getExpectedAssertions();
 
@@ -384,7 +344,7 @@ public class I18nTestRunnerTest {
 
         // Search for and print the expected assertions.
         int expectedAssertionsFound = 0;
-        StringBuilder expectedSb = new StringBuilder("Expected: [");
+        StringBuilder expectedSB = new StringBuilder("Expected: [");
         for (Assertion expectedAssertion : expectedAssertions) {
             boolean found = false;
             int i = 0;
@@ -397,7 +357,7 @@ public class I18nTestRunnerTest {
             if (found) {
                 expectedAssertionsFound++;
             }
-            expectedSb.append("[")
+            expectedSB.append("[")
                     .append(expectedAssertion.getId())
                     .append(expectedAssertion.getLevel()
                     == Assertion.Level.MESSAGE
@@ -407,12 +367,12 @@ public class I18nTestRunnerTest {
                     .append("), ");
         }
         if (!expectedAssertions.isEmpty()) {
-            expectedSb.replace(
-                    expectedSb.length() - 2, expectedSb.length() - 1, "]");
+            expectedSB.replace(
+                    expectedSB.length() - 2, expectedSB.length() - 1, "]");
         } else {
-            expectedSb.append("]");
+            expectedSB.append("]");
         }
-        System.out.println(expectedSb);
+        testSB.append("\n").append(expectedSB);
 
         // Sort generated assertions in to 3 categories and print.
         // (Expected reports.)
@@ -439,24 +399,25 @@ public class I18nTestRunnerTest {
             }
         }
 
-        System.out.println(
-                "Found: " + toString(gFound));
-        System.out.println(
-                "Unexpected 'rep': " + toString(gRepUnexpected));
-        System.out.println(
-                "Other: " + toString(gOther));
+        testSB.append("\nFound: ").append(toString(gFound)).append(
+                "\nUnexpected 'rep': ").append(toString(gRepUnexpected))
+                .append("\nOther: ").append(toString(gOther));
 
         // Determine result.
         passed = expectedAssertionsFound
                 == i18nTest.getExpectedAssertions().size();
 
-        System.out.println(
-                "Result: " + (passed ? "Passed" : "FAILED")
-                + " (generated: " + expectedAssertionsFound + " of "
-                + expectedAssertions.size() + " expected, "
-                + gRepUnexpected.size() + " unexpected 'rep', and "
-                + gOther.size() + " other).");
-        return passed;
+        testSB.append("\nResult: ").append(passed ? "Passed" : "FAILED")
+                .append(" (generated: ").append(expectedAssertionsFound)
+                .append(" of ").append(expectedAssertions.size())
+                .append(" expected, ").append(gRepUnexpected.size())
+                .append(" unexpected 'rep', and ").append(gOther.size())
+                .append(" other).\n");
+        if (passed) {
+            logger.info(testSB.toString());
+        } else {
+            fail(testSB.toString());
+        }
     }
 
     private static boolean matches(Assertion found, Assertion expected) {
