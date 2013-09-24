@@ -480,13 +480,11 @@ public class I18nTestRunnerTest {
             sb.append("]");
         }
         return sb.toString();
-
-
-
-
     }
 
     public static class TestsFileParsingException extends RuntimeException {
+
+        static final long serialVersionUID = -1997103118729166042L;
 
         public TestsFileParsingException() {
         }
