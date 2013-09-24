@@ -291,7 +291,6 @@ class ParsedDocument {
         // Find any BOMs in the content.
         this.bomsInContent = new ArrayList<>();
         for (int i = 1; i < documentBodyBytes.length - 5; i++) {
-            byte b = documentBodyBytes[i];
             ByteOrderMark bom = Utils.findByteOrderMark(Arrays.copyOfRange(
                     documentBodyBytes, i, i + 5));
             if (bom != null) {
