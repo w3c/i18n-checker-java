@@ -100,18 +100,21 @@ public class DocumentResourceTest {
         System.out.println("Testing: getBody");
         if (onlineInstance != null) {
             assertNotNull(onlineInstance.getBody());
-
-            // Try using the input stream (may provoke an IOException).
-            Scanner scanner = new Scanner(
-                    onlineInstance.getBody(), "UTF-8").useDelimiter("\\A");
-            String temp = scanner.hasNext() ? scanner.next() : "";
+            try (Scanner scanner =
+                    new Scanner(onlineInstance.getBody(), "UTF-8")) {
+                scanner.useDelimiter("\\A");
+                if (scanner.hasNext()) {
+                    scanner.next();
+                }
+            }
         }
         assertNotNull(offlineInstance.getBody());
-        // Try using the input stream (may provoke an IOException).
-        Scanner scanner = new Scanner(
-                offlineInstance.getBody(), "UTF-8").useDelimiter("\\A");
-        if (scanner.hasNext()) {
-            scanner.next();
+        try (Scanner scanner =
+                new Scanner(offlineInstance.getBody(), "UTF-8")) {
+            scanner.useDelimiter("\\A");
+            if (scanner.hasNext()) {
+                scanner.next();
+            }
         }
     }
 }
