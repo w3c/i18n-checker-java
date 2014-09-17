@@ -1,8 +1,9 @@
 i18n-checker
 ============
-A Java implementation of the [W3C Internationalization Checker](http://validator.w3.org/i18n-checker/). Provides an API for running internationalization (i18n) checks on a document.
 
-**Notice:** This project is in the early stages of its development.
+**Notice:** This project was discontinued in February 2014.
+
+A Java implementation of the [W3C Internationalization Checker](http://validator.w3.org/i18n-checker/). Provides an API for running internationalization (i18n) checks on a document.
 
 [![Build status image from travis-ci.org](https://travis-ci.org/w3c/i18n-checker.png?branch=master)](http://travis-ci.org/w3c/i18n-checker)
 
