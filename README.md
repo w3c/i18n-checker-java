@@ -1,4 +1,4 @@
-i18n-checker
+i18n-checker - Java version
 ============
 
 **Notice:** This project was discontinued in February 2014.
