@@ -14,7 +14,7 @@
 
     <name>i18n-checker</name>
     <description>A Java implementation of the Internationalization Checker.</description>
-    <url>https://github.com/w3c/i18n-checker</url>
+    <url>https://github.com/w3c/i18n-checker-java</url>
     
     <licenses>
         <license>
@@ -29,15 +29,15 @@
     </organization>
     
     <scm>
-        <connection>scm:git:git://github.com/w3c/i18n-checker.git</connection>
-        <developerConnection>scm:git:git@github.com:w3c/i18n-checker.git</developerConnection>
-        <url>http://github.com/w3c/i18n-checker</url>
+        <connection>scm:git:git://github.com/w3c/i18n-checker-java.git</connection>
+        <developerConnection>scm:git:git@github.com:w3c/i18n-checker-java.git</developerConnection>
+        <url>http://github.com/w3c/i18n-checker-java</url>
     </scm>
     
     <developers>
         <developer>
             <id>Developers</id>
-            <url>http://github.com/w3c/i18n-checker/graphs/contributors</url>
+            <url>http://github.com/w3c/i18n-checker-java/graphs/contributors</url>
         </developer>
     </developers>
     
